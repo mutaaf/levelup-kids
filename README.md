@@ -70,16 +70,27 @@ v1.1 (agents pick up after launch): AI Family Coach, Achievements, Stripe subscr
 
 ## Local development
 
-The first ticket (`docs/backlog/0001-*.md`) bootstraps the Next.js + Supabase + Tailwind + shadcn project, the CI workflow with the three gating checks, and the local-Supabase E2E fixture. After it ships, the standard loop applies:
+Requirements: **Node 20.19+** (engines pin in `package.json`; cross-fleet lessons rule
+out Node 25 for vitest 4 + vite 8), the **Supabase CLI**, and **Docker** running for
+`supabase start`.
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
-npm run lint
-npm run typecheck
-npm run test
-npm run test:e2e
-node scripts/check-backlog.mjs
+cp .env.example .env.local
+supabase start                  # local Postgres + Auth on :54321 / :54322
+supabase status -o env \
+  --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+  --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+  --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
+  --override-name db.url=SUPABASE_DB_URL >> .env.local
+
+npm run dev                     # http://localhost:3000
+
+# the local gate (also enforced in CI as three named jobs):
+npm run lint                    # ESLint + node scripts/check-backlog.mjs
+npm run typecheck               # tsc --noEmit
+npm run test                    # vitest
+npm run test:e2e                # Playwright (chromium + mobile-webkit)
 ```
 
 ## Going autonomous

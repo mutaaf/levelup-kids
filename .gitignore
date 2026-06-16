@@ -35,6 +35,14 @@ yarn-debug.log*
 coverage/
 playwright-report/
 test-results/
+.vitest-cache/
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# Vercel
+.vercel/
 
 # Launch evidence (large media files)
 docs/launch-evidence/*.mp4
