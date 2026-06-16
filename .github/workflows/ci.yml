@@ -64,6 +64,13 @@ jobs:
         run: supabase start
 
       - name: Capture Supabase URL + keys into the env
+        # `supabase status -o env` emits NAME="value" lines (literal double
+        # quotes around every value). Streaming that straight into
+        # $GITHUB_ENV makes process.env.NAME include the quotes, which
+        # makes supabase-js reject NEXT_PUBLIC_SUPABASE_URL as an invalid
+        # URL. Strip the surrounding quotes before exporting.
+        # See docs/LESSONS.md (2026-06-16) for the psql variant of the
+        # same trap.
         run: |
           supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
@@ -71,6 +78,7 @@ jobs:
             --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
             --override-name auth.jwt_secret=SUPABASE_AUTH_JWT_SECRET \
             --override-name db.url=SUPABASE_DB_URL \
+            | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' \
             >> "$GITHUB_ENV"
 
       - name: vitest (includes RLS suite against live Supabase)
