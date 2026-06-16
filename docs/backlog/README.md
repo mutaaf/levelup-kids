@@ -86,7 +86,7 @@ gtm-innovation never edits `src/`, `tests/`, `e2e/`, or `supabase/migrations/`. 
 
 | id | title | priority | status | area |
 |----|-------|----------|--------|------|
-| 0001 | Scaffold Next.js 15 + Tailwind + shadcn + Supabase local + CI gating | P0 | groomed | infra |
+| 0001 | Scaffold Next.js 15 + Tailwind + shadcn + Supabase local + CI gating | P0 | in-progress | infra |
 | 0002 | Postgres schema + RLS for households, parents, children, quests, completions, events | P0 | groomed | infra |
 | 0003 | Parent sign-up + sign-in via Supabase Auth magic link | P0 | groomed | auth |
 | 0004 | Household creation flow at /onboarding/household | P0 | groomed | onboarding |

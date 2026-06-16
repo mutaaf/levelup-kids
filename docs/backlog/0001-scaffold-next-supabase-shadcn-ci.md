@@ -1,7 +1,7 @@
 ---
 id: 0001
 title: Scaffold Next.js 15 + Tailwind + shadcn + Supabase local + CI gating
-status: groomed
+status: in-progress
 priority: P0
 area: infra
 created: 2026-06-16
@@ -69,4 +69,4 @@ Each box maps 1:1 to a test or verifiable behavior.
 
 ## Implementation log
 
-(Appended by implementation-dev during execution.)
+- 2026-06-16 [ship/0001] Started on `feat/0001-scaffold-next-supabase-shadcn-ci`. Scaffolding Next.js 15 (App Router, TS strict, Tailwind v4) in repo root, wiring local Supabase, Playwright (chromium + mobile-webkit), vitest, shadcn/ui primitives, and the three CI gating jobs (`lint` / `unit-tests` / `e2e-tests`).
