@@ -1,7 +1,7 @@
 ---
 id: 0001
 title: Scaffold Next.js 15 + Tailwind + shadcn + Supabase local + CI gating
-status: in-progress
+status: shipped
 priority: P0
 area: infra
 created: 2026-06-16

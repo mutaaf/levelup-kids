@@ -1,7 +1,7 @@
 ---
 id: 0002
 title: Postgres schema + RLS for households, parents, children, quests, completions, events
-status: groomed
+status: in-progress
 priority: P0
 area: infra
 created: 2026-06-16
@@ -63,4 +63,5 @@ Each box maps 1:1 to a vitest scenario in `tests/db/rls.test.ts`.
 
 ## Implementation log
 
-(Appended by implementation-dev during execution.)
+- 2026-06-16 [implementation-dev] Picked up on `feat/0002-schema-rls`. Plan: write failing `tests/db/rls.test.ts` against a local Supabase (skip-gracefully if `NEXT_PUBLIC_SUPABASE_URL` not set so local devs without Docker get a soft signal; CI gates by wiring `supabase start` into the `unit-tests` job). Write `supabase/migrations/0001_init.sql` to match `docs/ARCHITECTURE.md §3` verbatim plus RLS policies + the `prevent_xp_change_after_approval()` trigger. Implement `pillarSlugSchema` in `src/lib/types/pillar.ts` as a hand-rolled zod-shaped validator (zod is NOT in the dep set per the engineering note "no new deps beyond what 0001 installed"; the `pillarSlugSchema` (zod) phrasing in the AC is read as "zod-style schema", not "import zod").
+- 2026-06-16 [implementation-dev] Index drift on 0001 (status was `in-progress` in both the ticket file and the README despite PRs #1 and #2 having merged) folded into this PR per the ship prompt's PHASE 2 instruction.

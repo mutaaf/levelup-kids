@@ -86,8 +86,7 @@ gtm-innovation never edits `src/`, `tests/`, `e2e/`, or `supabase/migrations/`. 
 
 | id | title | priority | status | area |
 |----|-------|----------|--------|------|
-| 0001 | Scaffold Next.js 15 + Tailwind + shadcn + Supabase local + CI gating | P0 | in-progress | infra |
-| 0002 | Postgres schema + RLS for households, parents, children, quests, completions, events | P0 | groomed | infra |
+| 0002 | Postgres schema + RLS for households, parents, children, quests, completions, events | P0 | in-progress | infra |
 | 0003 | Parent sign-up + sign-in via Supabase Auth magic link | P0 | groomed | auth |
 | 0004 | Household creation flow at /onboarding/household | P0 | groomed | onboarding |
 | 0005 | Invite a co-parent via email link | P0 | groomed | household |
@@ -114,3 +113,4 @@ gtm-innovation never edits `src/`, `tests/`, `e2e/`, or `supabase/migrations/`. 
 | 0026 | Weekly recap email — the comeback hook for week-2 churn | P1 | proposed | growth-loop |
 | 0027 | Family Growth Score share card — the viral loop's atom | P1 | proposed | growth-loop |
 | 0028 | Stale-household co-parent re-invite — day 7 nudge if only 1 parent active | P2 | proposed | growth-loop |
+| 0001 | Scaffold Next.js 15 + Tailwind + shadcn + Supabase local + CI gating | P0 | shipped | infra |
