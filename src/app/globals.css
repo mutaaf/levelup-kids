@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Tailwind v4 theme bridge — every color we want as a Tailwind utility class
+   (`bg-brand-500`, `text-ink-primary`, etc.) is exposed here. Display + body
+   font families are bound to the variables `next/font` sets in layout.tsx. */
+@theme {
+  --color-paper: var(--surface-paper);
+  --color-card: var(--surface-card);
+  --color-tinted: var(--surface-tinted);
+
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-900: var(--brand-900);
+
+  --color-pillar-scholar: var(--pillar-scholar);
+  --color-pillar-athlete: var(--pillar-athlete);
+  --color-pillar-builder: var(--pillar-builder);
+  --color-pillar-creator: var(--pillar-creator);
+  --color-pillar-leader: var(--pillar-leader);
+  --color-pillar-character: var(--pillar-character);
+  --color-pillar-explorer: var(--pillar-explorer);
+  --color-pillar-purpose: var(--pillar-purpose);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+html,
+body {
+  background-color: var(--surface-paper);
+  color: var(--ink-primary);
+  font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  font-size: var(--text-body);
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  line-height: 1.1;
+  color: var(--ink-primary);
+}

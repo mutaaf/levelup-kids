@@ -1,0 +1,60 @@
+/* Design tokens — mirrors docs/DESIGN.md §2. The single source of truth for
+   color, type scale, radius, and shadow. Tailwind v4 reads these via the
+   @theme block in src/app/globals.css; raw CSS reads them directly. */
+
+:root {
+  /* Surface */
+  --surface-paper: #faf7f2; /* the default page background — cream */
+  --surface-card: #ffffff; /* lifted card surface */
+  --surface-elevated: #ffffff; /* dialogs, popovers */
+  --surface-tinted: #f2ede4; /* secondary background; "kitchen counter" */
+
+  /* Ink */
+  --ink-primary: #1f1b16; /* warm near-black — never #000 */
+  --ink-secondary: #5c5448;
+  --ink-muted: #8a8275;
+  --ink-inverse: #faf7f2; /* on a dark surface */
+
+  /* Brand — clay/terracotta, NOT purple-gradient AI bait */
+  --brand-50: #fbefe9;
+  --brand-500: #d2562b; /* the primary brand color */
+  --brand-600: #b0411e;
+  --brand-900: #4a1a0c;
+
+  /* Pillar palette — every pillar gets a tint that matches the kind of child
+     it makes. Used ONLY in pillar context (see docs/DESIGN.md §2). */
+  --pillar-scholar: #b07a2b; /* warm ochre — the library lamp */
+  --pillar-athlete: #4a7a3a; /* moss green — the grass field */
+  --pillar-builder: #8a5a3a; /* sawn-wood brown */
+  --pillar-creator: #c2528c; /* rosewater — the paintbox */
+  --pillar-leader: #4a6b8c; /* uniform blue — the captain's stripe */
+  --pillar-character: #6b4a8c; /* dusk violet — the prayer hour */
+  --pillar-explorer: #2b7a6b; /* river teal */
+  --pillar-purpose: #b0411e; /* same as brand-600 — service is the point */
+
+  /* Semantic */
+  --success: #3f7a3f;
+  --warning: #b07a2b;
+  --danger: #a8331f;
+
+  /* Geometry */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* Shadow — soft, warm, never neon */
+  --shadow-sm: 0 1px 2px rgba(31, 27, 22, 0.06);
+  --shadow-md: 0 4px 12px rgba(31, 27, 22, 0.08);
+  --shadow-lg: 0 16px 40px rgba(31, 27, 22, 0.1);
+
+  /* Type scale (mobile-first; desktop bumps via clamp) */
+  --text-display: clamp(40px, 8vw, 64px);
+  --text-h1: clamp(28px, 5vw, 36px);
+  --text-h2: clamp(22px, 4vw, 28px);
+  --text-h3: 18px;
+  --text-body: 16px;
+  --text-small: 14px;
+  --text-pip: 12px;
+}
