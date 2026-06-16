@@ -12,7 +12,8 @@
     "lint": "next lint && node scripts/check-backlog.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:types": "supabase gen types typescript --local > src/types/database.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
