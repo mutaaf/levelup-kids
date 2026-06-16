@@ -22,3 +22,5 @@ Examples (see Almanac / CourtIQ / Digital Craft for live versions):
 - Don't reword historical entries. Add a follow-up entry instead.
 
 ## Entries
+
+2026-06-16 [eng/heal] CI e2e-tests psql step failed connecting to /var/run/postgresql/.s.PGSQL.5432 even though SUPABASE_DB_URL was set → `supabase status -o env >> $GITHUB_ENV` writes the value with literal quotes (e.g. `SUPABASE_DB_URL="postgresql://..."`), so `psql "$SUPABASE_DB_URL"` expands to `psql '"postgresql://..."'` and psql falls back to the default Unix socket → invoke psql with explicit `-h 127.0.0.1 -p 54322 -U postgres -d postgres` + `PGPASSWORD` env instead of the URL form. Same trap applies to any future `psql "$X"` where X came through GITHUB_ENV via supabase-status.
