@@ -227,6 +227,13 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Ticket 0003 — magic-link email. Voice-compliant: no banned words, no emoji,
+# no marketing footer. Body opens with "Tap to sign in. The link expires in
+# 60 minutes." See supabase/templates/magic_link.html for the rendered HTML.
+[auth.email.template.magic_link]
+subject = "Your LevelUp Kids sign-in link."
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true
