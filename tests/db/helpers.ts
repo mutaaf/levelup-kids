@@ -171,8 +171,11 @@ export async function resetDatabase(env: RlsTestEnv): Promise<void> {
   // Order matters because of FKs (children/quests/completions cascade from
   // households, but we go ground-up to be explicit). The service role
   // bypasses RLS, so DELETE-FROM is fine.
+  //
+  // UUID-keyed tables only here — `events.id` is bigserial and a UUID-shaped
+  // sentinel throws `invalid input syntax for type bigint` at the DB before
+  // the special-case below can run. Keep `events` out of this list.
   for (const t of [
-    "events",
     "quest_completions",
     "quests",
     "children",
@@ -184,7 +187,8 @@ export async function resetDatabase(env: RlsTestEnv): Promise<void> {
       throw new Error(`resetDatabase: delete ${t} failed: ${error.message}`);
     }
   }
-  // `events.id` is a bigserial, not a uuid — clear it separately.
+  // `events.id` is a bigserial, not a uuid — clear it separately with a
+  // sentinel postgres can actually cast to bigint.
   await svc.from("events").delete().neq("id", -1);
 
   // Auth users — list + delete via admin API. Cheap because each test only
