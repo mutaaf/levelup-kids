@@ -110,12 +110,21 @@ jobs:
         run: supabase start
 
       - name: Capture Supabase URL + keys into the env
+        # `supabase status -o env` emits NAME="value" lines (literal double
+        # quotes around every value). Without stripping them here, the Next
+        # middleware introduced in 0003 reads NEXT_PUBLIC_SUPABASE_URL with
+        # embedded quotes and @supabase/ssr rejects it as an invalid URL
+        # (the WebServer error loop that previously failed e2e). The
+        # unit-tests job already has this strip; apply it to every job that
+        # captures via `supabase status -o env`. See docs/LESSONS.md
+        # (2026-06-16 [ship/heal] env-quote trap).
         run: |
           supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
             --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
             --override-name db.url=SUPABASE_DB_URL \
+            | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' \
             >> "$GITHUB_ENV"
 
       - name: Reset database (drop + re-apply migrations)
