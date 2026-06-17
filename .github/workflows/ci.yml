@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.19.0"
+          node-version: "22.11.0"
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -40,16 +40,48 @@ jobs:
   unit-tests:
     name: unit-tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.19.0"
+          node-version: "22.11.0"
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: vitest
+
+      # The RLS test suite (tests/db/rls.test.ts, ticket 0002) needs a live
+      # local Supabase to actually exercise the policies. Without it the
+      # describe.skipIf() short-circuits and we'd silently ship zero RLS
+      # coverage in CI. Boot the same supabase the e2e job uses; reuse its
+      # env-capture pattern.
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Capture Supabase URL + keys into the env
+        # `supabase status -o env` emits NAME="value" lines (literal double
+        # quotes around every value). Streaming that straight into
+        # $GITHUB_ENV makes process.env.NAME include the quotes, which
+        # makes supabase-js reject NEXT_PUBLIC_SUPABASE_URL as an invalid
+        # URL. Strip the surrounding quotes before exporting.
+        # See docs/LESSONS.md (2026-06-16) for the psql variant of the
+        # same trap.
+        run: |
+          supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
+            --override-name auth.jwt_secret=SUPABASE_AUTH_JWT_SECRET \
+            --override-name db.url=SUPABASE_DB_URL \
+            | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' \
+            >> "$GITHUB_ENV"
+
+      - name: vitest (includes RLS suite against live Supabase)
         run: npm run test
 
   e2e-tests:
@@ -63,7 +95,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.19.0"
+          node-version: "22.11.0"
           cache: npm
 
       - name: Install dependencies
