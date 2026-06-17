@@ -1,7 +1,7 @@
 ---
 id: 0003
 title: Parent sign-up + sign-in via Supabase Auth magic link
-status: groomed
+status: in-progress
 priority: P0
 area: auth
 created: 2026-06-16
@@ -63,4 +63,5 @@ Each box maps 1:1 to a vitest or Playwright scenario.
 
 ## Implementation log
 
-(Appended by implementation-dev during execution.)
+- 2026-06-17 [implementation-dev] Picked up on `feat/0003-parent-auth-magic-link`. Plan: shared `<AuthForm mode>` client component, server `/auth/signin` and `/auth/signup` pages, `/auth/callback` Route Handler doing `exchangeCodeForSession()` + first-time `parents` upsert (id = auth.uid(), household_id = null), `src/middleware.ts` enforcing the public-path allowlist + 302-to-signin?next= for everything else. `supabase/config.toml` gets the `[auth.email.template.magic_link]` block with the voice-compliant subject + body. Tests-first: vitest `tests/auth/callback.test.ts` covers the route handler, middleware allowlist, parents-row upsert shape, password-field-absence grep, and config.toml copy; Playwright `e2e/auth.spec.ts` covers the form copy + loading state for both modes. Also folding in the 0002 status drift on this branch (ticket file + README row).
+- 2026-06-17 [implementation-dev] @supabase/ssr already on the dep list from 0001 — no new top-level dep needed.

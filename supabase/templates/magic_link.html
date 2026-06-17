@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <body
+    style="
+      margin: 0;
+      padding: 32px;
+      background-color: #faf7f2;
+      color: #1f1b16;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="max-width: 480px; margin: 0 auto;"
+    >
+      <tr>
+        <td>
+          <p style="margin: 0 0 16px;">
+            Tap to sign in. The link expires in 60 minutes.
+          </p>
+          <p style="margin: 0 0 24px;">
+            <a
+              href="{{ .ConfirmationURL }}"
+              style="
+                display: inline-block;
+                padding: 12px 20px;
+                background-color: #d2562b;
+                color: #faf7f2;
+                text-decoration: none;
+                border-radius: 999px;
+                font-weight: 500;
+              "
+              >Sign in to LevelUp Kids</a
+            >
+          </p>
+          <p style="margin: 0 0 8px; color: #5c5448;">
+            If the button does not work, paste this link into your browser:
+          </p>
+          <p style="margin: 0; word-break: break-all; color: #5c5448; font-size: 14px;">
+            {{ .ConfirmationURL }}
+          </p>
+          <p style="margin: 32px 0 0; color: #8a8275; font-size: 14px;">
+            You are receiving this because someone entered your address at
+            levelupkids.app. If that was not you, ignore this message and the
+            link will expire on its own.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

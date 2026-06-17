@@ -1,0 +1,27 @@
+-- Ticket 0003 — allow parents.household_id to be NULL.
+--
+-- The 0002 schema declared `parents.household_id uuid NOT NULL references
+-- households(id)`. That worked when the only path to a parents row was via
+-- the (future) /onboarding/household flow (ticket 0004), where the household
+-- is created first and the parents row second.
+--
+-- But 0003's acceptance criteria demand that the magic-link callback insert
+-- a parents row at first sign-in with `household_id = null` — the parent
+-- exists *before* the household, and the household is created in 0004 via
+-- an UPDATE that fills the household_id in. The two constraints are in
+-- conflict; this migration relaxes the NOT NULL.
+--
+-- RLS implications:
+--   - `households_select_own` / etc. use the SECURITY DEFINER
+--     `auth_household_id()` function, which returns NULL when the parent's
+--     household_id is NULL. That correctly keeps a parent with no household
+--     from selecting anyone else's rows.
+--   - `parents_select_household` lets a parent see co-parents in the same
+--     household. With NULL household_id, that policy returns zero rows for
+--     a not-yet-onboarded parent, which is the right answer.
+--
+-- The 0002 ticket's "every row protected" contract is preserved: a parent
+-- with NULL household_id sees no household-scoped rows because the policy
+-- subquery returns NULL.
+
+alter table parents alter column household_id drop not null;
