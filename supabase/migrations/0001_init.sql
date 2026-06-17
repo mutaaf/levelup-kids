@@ -294,6 +294,21 @@ create policy quest_completions_update_household
   );
 
 -- =========================================================================
+-- Role grants — explicit, not relying on ALTER DEFAULT PRIVILEGES
+-- =========================================================================
+--
+-- Supabase's hosted setup applies default privileges to public.* tables
+-- created by migrations, but `supabase/setup-cli@v1 + supabase start` in
+-- CI does not — newly created tables have NO grants and every role
+-- (including service_role) gets `permission denied for table`.
+--
+-- RLS still does the per-row gating for `authenticated`; `service_role`
+-- bypasses RLS by design (Supabase wires this through PostgREST), so
+-- granting it full DML on every table is the correct + intentional shape.
+grant select, insert, update, delete on all tables in schema public to authenticated, service_role;
+grant usage, select on all sequences in schema public to authenticated, service_role;
+
+-- =========================================================================
 -- Test helper RPCs (used by tests/db/rls.test.ts)
 -- =========================================================================
 --
