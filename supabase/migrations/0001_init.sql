@@ -156,7 +156,7 @@ execute function prevent_xp_change_after_approval();
 -- =========================================================================
 --
 -- Pattern (per ticket 0002 engineering notes):
---   using (household_id = (select household_id from parents where id = auth.uid()))
+--   using (household_id = auth_household_id())
 --
 -- Notes:
 --   - `auth.uid()` returns the `sub` claim of the JWT, cast to uuid.
@@ -175,17 +175,38 @@ alter table quests             enable row level security;
 alter table quest_completions  enable row level security;
 alter table events             enable row level security;
 
+-- Resolving the calling parent's household_id INSIDE a SELECT subquery
+-- against `parents` triggers `parents`' own SELECT policy, which then runs
+-- the same subquery, which triggers the policy, which … (postgres 42P17,
+-- "infinite recursion in policy for relation parents").
+--
+-- Supabase's recommended escape is a SECURITY DEFINER function: it runs as
+-- the function owner (postgres), bypasses RLS, returns the household_id in
+-- one row, and is treated as a constant by the policy planner.
+create or replace function auth_household_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public, pg_catalog
+as $$
+  select household_id from public.parents where id = auth.uid()
+$$;
+
+revoke all on function auth_household_id() from public;
+grant execute on function auth_household_id() to authenticated, service_role;
+
 -- ---- households ---------------------------------------------------------
 create policy households_select_own
   on households for select
   to authenticated
-  using (id = (select household_id from parents where id = auth.uid()));
+  using (id = auth_household_id());
 
 create policy households_update_own
   on households for update
   to authenticated
-  using (id = (select household_id from parents where id = auth.uid()))
-  with check (id = (select household_id from parents where id = auth.uid()));
+  using (id = auth_household_id())
+  with check (id = auth_household_id());
 
 -- Households are created server-side via the onboarding API
 -- (`createServiceSupabase()` bypasses RLS); no client INSERT policy.
@@ -197,29 +218,29 @@ create policy households_update_own
 create policy parents_select_household
   on parents for select
   to authenticated
-  using (household_id = (select household_id from parents p2 where p2.id = auth.uid()));
+  using (household_id = auth_household_id());
 
 -- ---- children -----------------------------------------------------------
 create policy children_select_household
   on children for select
   to authenticated
-  using (household_id = (select household_id from parents where id = auth.uid()));
+  using (household_id = auth_household_id());
 
 create policy children_insert_household
   on children for insert
   to authenticated
-  with check (household_id = (select household_id from parents where id = auth.uid()));
+  with check (household_id = auth_household_id());
 
 create policy children_update_household
   on children for update
   to authenticated
-  using (household_id = (select household_id from parents where id = auth.uid()))
-  with check (household_id = (select household_id from parents where id = auth.uid()));
+  using (household_id = auth_household_id())
+  with check (household_id = auth_household_id());
 
 create policy children_delete_household
   on children for delete
   to authenticated
-  using (household_id = (select household_id from parents where id = auth.uid()));
+  using (household_id = auth_household_id());
 
 -- ---- quest_templates ----------------------------------------------------
 -- Templates are global (the seed library, ticket 0008). Anyone signed in
@@ -235,7 +256,7 @@ create policy quests_select_household
   to authenticated
   using (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ));
 
 create policy quests_insert_household
@@ -243,7 +264,7 @@ create policy quests_insert_household
   to authenticated
   with check (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ));
 
 create policy quests_update_household
@@ -251,11 +272,11 @@ create policy quests_update_household
   to authenticated
   using (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ))
   with check (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ));
 
 create policy quests_delete_household
@@ -263,7 +284,7 @@ create policy quests_delete_household
   to authenticated
   using (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ));
 
 -- ---- quest_completions --------------------------------------------------
@@ -272,7 +293,7 @@ create policy quest_completions_select_household
   to authenticated
   using (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ));
 
 -- The child marks ready via a service-role endpoint (no auth row on the
@@ -283,12 +304,12 @@ create policy quest_completions_update_household
   to authenticated
   using (child_id in (
     select id from children
-    where household_id = (select household_id from parents where id = auth.uid())
+    where household_id = auth_household_id()
   ))
   with check (
     child_id in (
       select id from children
-      where household_id = (select household_id from parents where id = auth.uid())
+      where household_id = auth_household_id()
     )
     and (approved_by is null or approved_by = auth.uid())
   );
