@@ -5,6 +5,8 @@ import {
 } from "@/lib/supabase/server";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
+import { scoreByPillar } from "@/lib/growth/score";
+import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
 
@@ -56,10 +58,11 @@ export default async function Home() {
     .eq("type", "daily")
     .eq("assigned_for", today);
 
-  // All approved completions for total XP.
+  // All approved completions for total XP — join the quest's pillar
+  // for the Family Growth Score.
   const { data: allCompletions } = await svc
     .from("quest_completions")
-    .select("id, child_id, xp_awarded, approved_at, quest_id")
+    .select("id, child_id, xp_awarded, approved_at, quest_id, quests:quests(pillar)")
     .in("child_id", childIds);
 
   // Pending completions (awaiting approval) joined with quests + children.
@@ -127,13 +130,30 @@ export default async function Home() {
     };
   });
 
+  // Family Growth Score per pillar (28-day window).
+  const approvedForScore = (allCompletions ?? [])
+    .filter((c) => c.approved_at)
+    .map((c) => {
+      const q = c.quests as unknown as { pillar: PillarSlug } | null;
+      return {
+        pillar: (q?.pillar ?? "scholar") as PillarSlug,
+        approvedAt: c.approved_at as string,
+      };
+    });
+  const growthScores = scoreByPillar({
+    focusPillars: focusPillars as PillarSlug[],
+    childrenCount: children.length,
+    completions: approvedForScore,
+  });
+
   return (
     <ParentDashboard
       householdName={household?.name ?? "Your household"}
       parentName={(parent.name as string | null) ?? ""}
       focusPillars={focusPillars as never}
-      children={childCards}
+      kids={childCards}
       pendingApprovals={pendingApprovals}
+      growthScores={growthScores}
     />
   );
 }

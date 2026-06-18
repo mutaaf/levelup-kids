@@ -47,3 +47,4 @@ next-env.d.ts.bak
 # Launch evidence (large media files)
 docs/launch-evidence/*.mp4
 docs/launch-evidence/*.mov
+.vercel
