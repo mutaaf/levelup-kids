@@ -24,12 +24,13 @@ export const PUBLIC_PATHS = [
 const PUBLIC_PATH_SET: ReadonlySet<string> = new Set(PUBLIC_PATHS);
 
 /** True when `pathname` (with or without a trailing slash) is one of the
- *  documented public routes. */
+ *  documented public routes. /display/* tokens are the auth themselves. */
 export function isPublicPath(pathname: string): boolean {
   const normalized =
     pathname.length > 1 && pathname.endsWith("/")
       ? pathname.slice(0, -1)
       : pathname;
+  if (normalized.startsWith("/display/")) return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 
