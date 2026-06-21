@@ -36,12 +36,20 @@ export function ParentDashboard({
           <span className="text-xs tracking-widest text-ink-secondary uppercase">
             {parentName ? `Hi, ${parentName.split(" ")[0]}` : "Welcome back"}
           </span>
-          <Link
-            href="/auth/signout"
-            className="text-xs text-ink-muted underline-offset-2 hover:underline"
-          >
-            Sign out
-          </Link>
+          <div className="flex items-center gap-4 text-xs">
+            <Link
+              href="/settings"
+              className="text-ink-secondary underline-offset-2 hover:underline"
+            >
+              Settings
+            </Link>
+            <Link
+              href="/auth/signout"
+              className="text-ink-muted underline-offset-2 hover:underline"
+            >
+              Sign out
+            </Link>
+          </div>
         </div>
         <h1
           className="font-display"

@@ -10,6 +10,7 @@ import {
   buildCoachSystemPrompt,
   type CoachContext,
 } from "@/lib/ai/coach-prompt";
+import { getHouseholdAnthropicKey } from "@/lib/ai/household-key";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export type CoachMessage = {
@@ -104,9 +105,13 @@ export async function sendCoachMessage(
     content: trimmed,
   });
 
+  // Prefer the household's own BYOK key; fall back to project env if absent.
+  const householdKey = await getHouseholdAnthropicKey(householdId);
+
   try {
     const result = await callAI({
       task: "coach",
+      apiKey: householdKey ?? undefined,
       maxTokens: 700,
       temperature: 0.6,
       messages: [

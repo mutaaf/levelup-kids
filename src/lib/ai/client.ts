@@ -19,6 +19,8 @@ export interface CallAIOptions {
   maxTokens?: number;
   /** 0–1 sampling temperature. */
   temperature?: number;
+  /** Per-call override (household BYOK). When set, ANTHROPIC_API_KEY env is ignored. */
+  apiKey?: string;
 }
 
 export interface CallAIResult {
@@ -28,15 +30,15 @@ export interface CallAIResult {
   usage: { inputTokens: number; outputTokens: number };
 }
 
-const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
+const DEFAULT_MODEL = "claude-sonnet-4-6";
 
 /** Free-text AI call. Anthropic primary; OpenAI fallback is the v1.1
  *  hardening ticket — not yet wired. */
 export async function callAI(options: CallAIOptions): Promise<CallAIResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = options.apiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "ANTHROPIC_API_KEY not set. Add it to .env.local or to your Vercel project's environment to enable the Family Coach.",
+      "No Anthropic API key. Add yours in Settings → AI Family Coach, or set ANTHROPIC_API_KEY for the whole project.",
     );
   }
 

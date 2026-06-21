@@ -4,6 +4,7 @@ import {
   createServerSupabase,
   createServiceSupabase,
 } from "@/lib/supabase/server";
+import { getHouseholdAnthropicKey } from "@/lib/ai/household-key";
 import { CoachChat } from "./CoachChat";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,11 @@ export default async function CoachPage() {
     .order("created_at", { ascending: true })
     .limit(40);
 
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+  const householdKey = await getHouseholdAnthropicKey(
+    parent.household_id as string,
+  );
+  const hasApiKey = !!householdKey || !!process.env.ANTHROPIC_API_KEY;
+  const usingHouseholdKey = !!householdKey;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col px-6 py-10 pb-32">
@@ -65,22 +70,32 @@ export default async function CoachPage() {
 
       {!hasApiKey && (
         <div className="mb-6 rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm">
-          <strong className="text-ink-primary">Add your Anthropic API key.</strong>
+          <strong className="text-ink-primary">
+            Add your Anthropic key to enable the Coach.
+          </strong>
           <p className="mt-1 text-ink-secondary">
-            The Coach needs <code className="rounded bg-tinted px-1">ANTHROPIC_API_KEY</code> in
-            your <code className="rounded bg-tinted px-1">.env.local</code> (or
-            Vercel env vars). Get one at{" "}
-            <a
-              href="https://console.anthropic.com/settings/keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-600 underline-offset-2 hover:underline"
-            >
-              console.anthropic.com
-            </a>
-            .
+            Paste an Anthropic API key on the settings screen — it stays
+            private to your household and your family pays only for what you
+            use. Typical question: a fraction of a penny.
           </p>
+          <Link
+            href="/settings"
+            className="mt-3 inline-block rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+          >
+            Open settings
+          </Link>
         </div>
+      )}
+      {usingHouseholdKey && (
+        <p className="mb-4 text-xs text-ink-muted">
+          Using your household&apos;s Anthropic key ·{" "}
+          <Link
+            href="/settings"
+            className="text-brand-600 underline-offset-2 hover:underline"
+          >
+            change in settings
+          </Link>
+        </p>
       )}
 
       <CoachChat
