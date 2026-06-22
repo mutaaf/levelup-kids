@@ -4,6 +4,7 @@ import {
   createServiceSupabase,
 } from "@/lib/supabase/server";
 import { HouseholdForm } from "./HouseholdForm";
+import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 
 export const dynamic = "force-dynamic";
 
@@ -26,26 +27,25 @@ export default async function HouseholdOnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-screen-sm flex-col px-6 py-12">
-      <div className="mb-8 flex items-center gap-2 text-xs tracking-widest text-ink-secondary uppercase">
-        <span className="inline-block size-2 rounded-full bg-brand-500" />
-        Step 1 of 3
+    <main className="mx-auto flex min-h-dvh max-w-screen-sm flex-col gap-8 px-6 py-10 sm:py-16">
+      <OnboardingProgress step={1} total={3} label="Your household" />
+      <div>
+        <h1
+          className="font-display text-balance"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "var(--text-h1)",
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Name your household.
+        </h1>
+        <p className="mt-3 max-w-md text-lg text-ink-secondary">
+          This is the name that&apos;ll appear on every quest, every recap, and
+          every Family Growth Score.
+        </p>
       </div>
-      <h1
-        className="font-display text-balance"
-        style={{
-          fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-          fontSize: "var(--text-h1)",
-          lineHeight: 1.1,
-          letterSpacing: "-0.01em",
-        }}
-      >
-        Name your household.
-      </h1>
-      <p className="mt-3 mb-8 max-w-lg text-ink-secondary">
-        We&apos;ll show this name on every Family Growth Score and on the
-        weekly recap your family sees together.
-      </p>
       <HouseholdForm defaultParentName={parent?.name ?? ""} />
     </main>
   );

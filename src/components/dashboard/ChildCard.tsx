@@ -20,49 +20,88 @@ export function ChildCard({
 }: ChildCardProps) {
   const lvl = level(totalXp);
   const xpInLevel = totalXp % 100;
+  const allDone = todayTotal > 0 && todayDone === todayTotal;
+  const noQuestsToday = todayTotal === 0;
+
   return (
     <Link
       href={`/kids/${childId}`}
-      className="group flex items-center gap-4 rounded-lg bg-card p-5 shadow-sm transition hover:shadow-md"
+      className="group flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      style={{
+        background: allDone
+          ? "color-mix(in srgb, var(--brand-500) 10%, var(--surface-card))"
+          : "var(--surface-card)",
+      }}
     >
-      <div
-        className="relative flex size-16 items-center justify-center rounded-full bg-tinted text-3xl"
-        aria-hidden
-      >
-        {avatar}
-        <span
-          className="absolute -right-1 -bottom-1 rounded-full bg-brand-500 px-1.5 py-0.5 text-xs font-bold text-white"
-          aria-label={`Level ${lvl}`}
-        >
-          {lvl}
-        </span>
-      </div>
-      <div className="flex-1">
-        <h3 className="font-display text-lg" style={{ fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif" }}>
-          {name}
-        </h3>
-        <div className="mt-1 flex items-center gap-3 text-sm text-ink-secondary">
-          <span>
-            Level {lvl} · {xpInLevel}/100 XP
-          </span>
-          <span aria-hidden>·</span>
-          <span>
-            {todayDone}/{todayTotal} today
+      <div className="flex items-center gap-4">
+        <div className="relative shrink-0">
+          <div
+            className="flex size-24 items-center justify-center rounded-full bg-paper text-5xl shadow-sm"
+            style={{
+              boxShadow: allDone
+                ? "inset 0 0 0 4px color-mix(in srgb, var(--brand-500) 30%, transparent)"
+                : "inset 0 0 0 3px color-mix(in srgb, var(--brand-500) 12%, transparent)",
+            }}
+            aria-hidden
+          >
+            {avatar}
+          </div>
+          <span
+            className="absolute -right-1 -bottom-1 rounded-full bg-brand-500 px-2.5 py-1 text-sm font-bold text-white shadow-md"
+            aria-label={`Level ${lvl}`}
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {lvl}
           </span>
         </div>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-tinted">
+        <div className="min-w-0 flex-1">
+          <h3
+            className="font-display"
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              fontSize: "1.5rem",
+              lineHeight: 1.1,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            {name}
+          </h3>
+          <p className="mt-1 text-base font-medium text-ink-secondary">
+            {noQuestsToday
+              ? "First quests tomorrow"
+              : allDone
+                ? `🎉 ${todayDone} for ${todayDone} today`
+                : `${todayDone} of ${todayTotal} today`}
+          </p>
+        </div>
+        <span
+          aria-hidden
+          className="text-3xl text-ink-muted transition-all group-hover:translate-x-0.5 group-hover:text-brand-500"
+        >
+          →
+        </span>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between text-sm font-semibold">
+          <span className="text-ink-secondary">
+            {xpInLevel} <span className="text-ink-muted">/ 100 XP</span>
+          </span>
+          <span className="text-ink-muted">Lvl {lvl + 1} next</span>
+        </div>
+        <div
+          className="overflow-hidden rounded-full bg-tinted"
+          style={{ height: "12px" }}
+        >
           <div
-            className="h-full bg-brand-500 transition-all"
-            style={{ width: `${(xpInLevel / 100) * 100}%` }}
+            className="h-full rounded-full bg-brand-500 transition-all duration-700"
+            style={{ width: `${xpInLevel}%` }}
           />
         </div>
       </div>
-      <span
-        aria-hidden
-        className="text-2xl text-ink-muted transition group-hover:translate-x-0.5 group-hover:text-brand-500"
-      >
-        →
-      </span>
     </Link>
   );
 }

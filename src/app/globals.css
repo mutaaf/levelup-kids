@@ -59,6 +59,111 @@ h3 {
   font-family: var(--font-fraunces), ui-serif, Georgia, serif;
   line-height: 1.1;
   color: var(--ink-primary);
+  letter-spacing: -0.015em;
+}
+
+/* Kid-friendly chunky controls. Keep the cream+terracotta aesthetic;
+   make every tap target large and confidently shaped. */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 18px;
+  background: var(--brand-500);
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  box-shadow: var(--shadow-md);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-600);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 18px;
+  border: 2px solid color-mix(in srgb, var(--ink-muted) 25%, transparent);
+  background: var(--surface-card);
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn-secondary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--brand-500) 45%, transparent);
+  background: var(--surface-tinted);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-huge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 20px;
+  background: var(--brand-500);
+  padding: 1.125rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+  box-shadow: var(--shadow-lg);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.btn-huge:hover:not(:disabled) {
+  background: var(--brand-600);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -12px rgba(208, 86, 43, 0.45);
+}
+.btn-huge:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+.btn-huge:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: var(--shadow-md);
+}
+
+.input-chunky {
+  width: 100%;
+  border-radius: 16px;
+  border: 2px solid color-mix(in srgb, var(--ink-muted) 18%, transparent);
+  background: var(--surface-card);
+  padding: 0.95rem 1.125rem;
+  font-size: 1.0625rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-chunky:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-500) 18%, transparent);
+}
+
+.eyebrow {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
 }
 
 /* Household-display animations: scrolling wins ticker + celebration pop. */

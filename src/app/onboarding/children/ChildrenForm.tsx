@@ -49,17 +49,23 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
       {kids.map((kid, i) => (
         <div
           key={i}
-          className="rounded-lg border border-ink-muted/20 bg-card p-5 shadow-sm"
+          className="rounded-3xl bg-card p-5 shadow-md sm:p-6"
         >
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-ink-secondary">
-              Child {i + 1}
+            <span
+              className="text-lg font-bold"
+              style={{
+                fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {kid.name.trim() || `Child ${i + 1}`}
             </span>
             {kids.length > 1 && (
               <button
                 type="button"
                 onClick={() => removeChild(i)}
-                className="text-sm text-ink-muted underline-offset-2 hover:text-danger hover:underline"
+                className="text-sm font-medium text-ink-muted underline-offset-2 hover:text-danger hover:underline"
               >
                 Remove
               </button>
@@ -70,7 +76,7 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
             <div className="flex-1">
               <label
                 htmlFor={`name-${i}`}
-                className="mb-1 block text-sm font-medium text-ink-primary"
+                className="mb-2 block text-base font-semibold text-ink-primary"
               >
                 First name
               </label>
@@ -81,14 +87,14 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
                 onChange={(e) => update(i, { name: e.target.value })}
                 placeholder="Layla"
                 maxLength={24}
-                className="w-full rounded-md border border-ink-muted/30 bg-paper px-4 py-3 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none"
+                className="input-chunky"
                 required
               />
             </div>
             <div className="sm:w-32">
               <label
                 htmlFor={`age-${i}`}
-                className="mb-1 block text-sm font-medium text-ink-primary"
+                className="mb-2 block text-base font-semibold text-ink-primary"
               >
                 Age
               </label>
@@ -101,14 +107,14 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
                 onChange={(e) =>
                   update(i, { age: parseInt(e.target.value || "7", 10) })
                 }
-                className="w-full rounded-md border border-ink-muted/30 bg-paper px-4 py-3 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none"
+                className="input-chunky text-center"
                 required
               />
             </div>
           </div>
 
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-ink-primary">
+          <div className="mt-5">
+            <p className="mb-2 text-base font-semibold text-ink-primary">
               Pick an avatar
             </p>
             <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
@@ -120,11 +126,17 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
                     type="button"
                     onClick={() => update(i, { avatar: a })}
                     aria-label={`Avatar ${a}`}
-                    className={`flex aspect-square items-center justify-center rounded-md text-2xl transition ${
-                      selected
-                        ? "bg-brand-500 ring-2 ring-brand-500 ring-offset-2 ring-offset-paper"
-                        : "bg-tinted hover:bg-tinted/70"
-                    }`}
+                    aria-pressed={selected}
+                    className="flex aspect-square items-center justify-center rounded-2xl text-3xl transition-all"
+                    style={{
+                      backgroundColor: selected
+                        ? "color-mix(in srgb, var(--brand-500) 15%, var(--surface-card))"
+                        : "var(--surface-tinted)",
+                      boxShadow: selected
+                        ? "0 0 0 3px var(--brand-500), 0 6px 16px -6px rgba(208, 86, 43, 0.45)"
+                        : "none",
+                      transform: selected ? "translateY(-1px)" : "none",
+                    }}
                   >
                     {a}
                   </button>
@@ -139,14 +151,14 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
         <button
           type="button"
           onClick={addChild}
-          className="self-start rounded-md border border-dashed border-ink-muted/40 px-4 py-2 text-sm text-ink-secondary hover:border-brand-500 hover:text-brand-500"
+          className="rounded-2xl border-2 border-dashed border-ink-muted/30 bg-card/60 px-5 py-4 text-base font-semibold text-ink-secondary transition-colors hover:border-brand-500 hover:bg-card hover:text-brand-500"
         >
-          + Add another child
+          + Add another kid
         </button>
       )}
 
       {error && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-base font-medium text-danger" role="alert">
           {error}
         </p>
       )}
@@ -154,7 +166,7 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
       <button
         type="submit"
         disabled={isPending || !allValid}
-        className="rounded-md bg-brand-500 px-5 py-3 text-base font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-huge w-full"
       >
         {isPending ? "Saving..." : "Continue"}
       </button>

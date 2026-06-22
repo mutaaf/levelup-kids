@@ -29,7 +29,7 @@ export function HouseholdForm({
       <div className="flex flex-col gap-2">
         <label
           htmlFor="household-name"
-          className="text-sm font-medium text-ink-primary"
+          className="text-base font-semibold text-ink-primary"
         >
           Household name
         </label>
@@ -43,7 +43,7 @@ export function HouseholdForm({
           value={householdName}
           onChange={(e) => setHouseholdName(e.target.value)}
           placeholder="The Aziz Family"
-          className="rounded-md border border-ink-muted/30 bg-card px-4 py-3 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none"
+          className="input-chunky"
           maxLength={60}
           required
         />
@@ -52,7 +52,7 @@ export function HouseholdForm({
       <div className="flex flex-col gap-2">
         <label
           htmlFor="parent-name"
-          className="text-sm font-medium text-ink-primary"
+          className="text-base font-semibold text-ink-primary"
         >
           Your name
         </label>
@@ -64,14 +64,14 @@ export function HouseholdForm({
           value={parentName}
           onChange={(e) => setParentName(e.target.value)}
           placeholder="Imran"
-          className="rounded-md border border-ink-muted/30 bg-card px-4 py-3 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none"
+          className="input-chunky"
           maxLength={60}
           required
         />
       </div>
 
       {error && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-base font-medium text-danger" role="alert">
           {error}
         </p>
       )}
@@ -79,7 +79,7 @@ export function HouseholdForm({
       <button
         type="submit"
         disabled={isPending || !householdName.trim() || !parentName.trim()}
-        className="mt-2 rounded-md bg-brand-500 px-5 py-3 text-base font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-huge w-full"
       >
         {isPending ? "Saving..." : "Continue"}
       </button>

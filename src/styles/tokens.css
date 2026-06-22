@@ -49,12 +49,14 @@
   --shadow-md: 0 4px 12px rgba(31, 27, 22, 0.08);
   --shadow-lg: 0 16px 40px rgba(31, 27, 22, 0.1);
 
-  /* Type scale (mobile-first; desktop bumps via clamp) */
-  --text-display: clamp(40px, 8vw, 64px);
-  --text-h1: clamp(28px, 5vw, 36px);
-  --text-h2: clamp(22px, 4vw, 28px);
-  --text-h3: 18px;
-  --text-body: 16px;
-  --text-small: 14px;
-  --text-pip: 12px;
+  /* Type scale (mobile-first; desktop bumps via clamp). Bumped 2026-06-21
+     for the kid-friendly UX pass — every headline a third larger, body up to
+     17px so the whole product reads more confidently. */
+  --text-display: clamp(48px, 9vw, 80px);
+  --text-h1: clamp(34px, 6vw, 52px);
+  --text-h2: clamp(26px, 4vw, 36px);
+  --text-h3: 22px;
+  --text-body: 17px;
+  --text-small: 15px;
+  --text-pip: 13px;
 }

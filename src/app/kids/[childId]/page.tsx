@@ -47,83 +47,169 @@ export default async function ChildDashboardPage({ params }: ChildDashProps) {
     .eq("assigned_for", today)
     .order("id");
 
-  // Get completions for these quest ids (to determine state).
   const questIds = (quests ?? []).map((q) => q.id as string);
   const { data: completions } = await svc
     .from("quest_completions")
     .select("id, quest_id, approved_at, xp_awarded")
-    .in("quest_id", questIds.length > 0 ? questIds : ["00000000-0000-0000-0000-000000000000"]);
+    .in(
+      "quest_id",
+      questIds.length > 0
+        ? questIds
+        : ["00000000-0000-0000-0000-000000000000"],
+    );
   const compByQuest = new Map<string, { approved: boolean }>();
   for (const c of completions ?? []) {
     compByQuest.set(c.quest_id as string, { approved: !!c.approved_at });
   }
 
-  // Compute totalXp for this child from ALL approved completions.
+  // Totals + streak for the hero.
   const { data: allCompletions } = await svc
     .from("quest_completions")
     .select("xp_awarded, approved_at")
     .eq("child_id", childId);
   let totalXp = 0;
+  const dayKeys = new Set<string>();
   for (const c of allCompletions ?? []) {
-    if (c.approved_at) totalXp += (c.xp_awarded as number | null) ?? 0;
+    if (c.approved_at) {
+      totalXp += (c.xp_awarded as number | null) ?? 0;
+      dayKeys.add((c.approved_at as string).slice(0, 10));
+    }
   }
+  let streak = 0;
+  for (let i = 0; i < 60; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    if (dayKeys.has(key)) streak += 1;
+    else if (i > 0) break;
+  }
+
   const lvl = level(totalXp);
   const xpInLevel = totalXp % 100;
 
+  const todayDone = (quests ?? []).filter((q) =>
+    compByQuest.get(q.id as string)?.approved,
+  ).length;
+  const todayTotal = (quests ?? []).length;
+  const allDone = todayTotal > 0 && todayDone === todayTotal;
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-8 px-6 py-10 pb-32">
+    <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-8 px-5 py-6 pb-32 sm:px-8 sm:py-10">
       <header>
         <Link
           href="/"
-          className="text-sm text-ink-secondary underline-offset-2 hover:underline"
+          className="inline-flex items-center gap-1.5 rounded-full bg-card px-4 py-2 text-sm font-medium text-ink-secondary shadow-sm transition-colors hover:bg-tinted"
         >
-          ← Back to family
+          <span aria-hidden>←</span>
+          Back to family
         </Link>
       </header>
 
-      <section className="flex flex-col items-center gap-4 py-4">
+      <section
+        className="relative flex flex-col items-center gap-5 rounded-3xl px-6 py-10 shadow-lg"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--brand-500) 12%, var(--surface-card)) 0%, var(--surface-card) 60%)",
+        }}
+      >
         <div className="relative">
           <div
-            className="flex size-36 items-center justify-center rounded-full bg-tinted text-7xl"
+            className="flex items-center justify-center rounded-full bg-paper shadow-md"
+            style={{
+              width: "clamp(180px, 38vw, 240px)",
+              height: "clamp(180px, 38vw, 240px)",
+              fontSize: "clamp(110px, 22vw, 144px)",
+              lineHeight: 1,
+              boxShadow:
+                "inset 0 0 0 6px color-mix(in srgb, var(--brand-500) 18%, transparent), 0 12px 32px -8px rgba(31, 27, 22, 0.18)",
+            }}
             aria-hidden
           >
             {child.avatar as string}
           </div>
           <span
-            className="absolute right-0 bottom-2 rounded-full bg-brand-500 px-3 py-1 text-base font-bold text-white shadow-sm"
+            className="absolute -right-3 -bottom-2 rounded-full bg-brand-500 px-4 py-1.5 font-bold text-white shadow-md"
             aria-label={`Level ${lvl}`}
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              fontSize: "1.5rem",
+              letterSpacing: "-0.02em",
+            }}
           >
             Lvl {lvl}
           </span>
         </div>
+
         <h1
-          className="font-display"
+          className="font-display text-center"
           style={{
             fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-            fontSize: "var(--text-h1)",
-            lineHeight: 1.1,
+            fontSize: "clamp(40px, 9vw, 64px)",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
           }}
         >
           {child.name as string}
         </h1>
-        <div className="w-full max-w-xs">
-          <div className="mb-1 flex justify-between text-xs text-ink-secondary">
-            <span>{xpInLevel} XP</span>
-            <span>{100 - xpInLevel} to next level</span>
+
+        {streak >= 3 && (
+          <div
+            className="flex items-center gap-2 rounded-full px-4 py-2 text-base font-bold"
+            style={{
+              color: "var(--warning)",
+              backgroundColor:
+                "color-mix(in srgb, var(--warning) 15%, transparent)",
+            }}
+          >
+            <span className="text-xl" aria-hidden>
+              🔥
+            </span>
+            {streak}-day streak
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-tinted">
+        )}
+
+        <div className="w-full max-w-md">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-sm font-bold text-ink-secondary">
+              {xpInLevel} XP
+            </span>
+            <span className="text-sm font-medium text-ink-muted">
+              {100 - xpInLevel} more for Lvl {lvl + 1}
+            </span>
+          </div>
+          <div
+            className="overflow-hidden rounded-full bg-tinted"
+            style={{ height: "18px" }}
+          >
             <div
-              className="h-full bg-brand-500 transition-all duration-500"
+              className="h-full rounded-full bg-brand-500 transition-all duration-700"
               style={{ width: `${xpInLevel}%` }}
             />
           </div>
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
-          Today&apos;s quests
-        </h2>
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <h2
+            className="font-display"
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              fontSize: "1.875rem",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Today&apos;s quests
+          </h2>
+          {todayTotal > 0 && (
+            <span className="text-base font-bold text-ink-secondary">
+              {allDone
+                ? `🎉 ${todayDone} / ${todayTotal}`
+                : `${todayDone} / ${todayTotal}`}
+            </span>
+          )}
+        </div>
+
         <div className="flex flex-col gap-3">
           {(quests ?? []).map((q) => {
             const comp = compByQuest.get(q.id as string);
@@ -145,9 +231,14 @@ export default async function ChildDashboardPage({ params }: ChildDashProps) {
             );
           })}
           {(quests ?? []).length === 0 && (
-            <p className="rounded-lg bg-card p-5 text-sm text-ink-secondary">
-              No quests for today yet. Come back tomorrow morning.
-            </p>
+            <div className="flex flex-col items-center gap-3 rounded-3xl bg-card p-10 text-center shadow-md">
+              <span className="text-5xl" aria-hidden>
+                🌙
+              </span>
+              <p className="text-lg font-medium text-ink-secondary">
+                No quests for today yet. Come back tomorrow morning.
+              </p>
+            </div>
           )}
         </div>
       </section>

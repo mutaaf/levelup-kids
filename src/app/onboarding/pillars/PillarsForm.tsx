@@ -13,6 +13,17 @@ type PillarCard = {
 const MAX_FOCUS = 3;
 const MIN_FOCUS = 2;
 
+const PILLAR_EMOJI: Record<string, string> = {
+  scholar: "📚",
+  athlete: "⚽",
+  builder: "🔨",
+  creator: "🎨",
+  leader: "🏅",
+  character: "🌟",
+  explorer: "🧭",
+  purpose: "🤝",
+};
+
 export function PillarsForm({
   pillars,
   initial,
@@ -59,31 +70,30 @@ export function PillarsForm({
               type="button"
               onClick={() => toggle(p.slug)}
               aria-pressed={isSelected}
-              className={`relative flex flex-col items-start gap-2 rounded-lg border-l-4 p-4 text-left transition ${
-                isSelected
-                  ? "bg-card shadow-md"
-                  : "bg-card/60 hover:bg-card"
-              }`}
+              className="relative flex flex-col items-start gap-3 rounded-3xl p-5 text-left transition-all"
               style={{
-                borderLeftColor: p.tint,
                 backgroundColor: isSelected
-                  ? `color-mix(in srgb, ${p.tint} 8%, var(--surface-card))`
-                  : undefined,
+                  ? `color-mix(in srgb, ${p.tint} 12%, var(--surface-card))`
+                  : "var(--surface-card)",
+                boxShadow: isSelected
+                  ? `0 0 0 3px ${p.tint}, 0 12px 32px -8px color-mix(in srgb, ${p.tint} 40%, transparent)`
+                  : "0 4px 12px rgba(31, 27, 22, 0.06)",
+                transform: isSelected ? "translateY(-2px)" : "none",
               }}
             >
-              <div className="flex w-full items-start justify-between">
-                <h2
-                  className="font-display text-lg"
+              <div className="flex w-full items-center justify-between">
+                <span
+                  className="flex size-14 items-center justify-center rounded-2xl text-3xl"
                   style={{
-                    fontFamily:
-                      "var(--font-fraunces), ui-serif, Georgia, serif",
+                    backgroundColor: `color-mix(in srgb, ${p.tint} 18%, var(--surface-paper))`,
                   }}
+                  aria-hidden
                 >
-                  {p.title}
-                </h2>
+                  {PILLAR_EMOJI[p.slug] ?? "✨"}
+                </span>
                 {isSelected && (
                   <span
-                    className="inline-flex size-5 items-center justify-center rounded-full text-xs text-white"
+                    className="inline-flex size-7 items-center justify-center rounded-full text-sm font-bold text-white"
                     style={{ backgroundColor: p.tint }}
                     aria-hidden
                   >
@@ -91,31 +101,45 @@ export function PillarsForm({
                   </span>
                 )}
               </div>
-              <p className="text-sm text-ink-secondary">{p.body}</p>
+              <h2
+                className="font-display"
+                style={{
+                  fontFamily:
+                    "var(--font-fraunces), ui-serif, Georgia, serif",
+                  fontSize: "1.5rem",
+                  letterSpacing: "-0.015em",
+                  color: isSelected ? p.tint : "var(--ink-primary)",
+                }}
+              >
+                {p.title}
+              </h2>
+              <p className="text-base leading-snug text-ink-secondary">
+                {p.body}
+              </p>
             </button>
           );
         })}
       </div>
 
       {error && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-base font-medium text-danger" role="alert">
           {error}
         </p>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-ink-secondary">
-          {selected.length === 0 && "Pick 2 or 3."}
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-base font-semibold text-ink-secondary">
+          {selected.length === 0 && "Pick 2 or 3 to start."}
           {selected.length === 1 && `Pick one more.`}
-          {selected.length === 2 && "One more is optional."}
-          {selected.length === 3 && "Locked in."}
+          {selected.length === 2 && "One more if you want."}
+          {selected.length === 3 && "Locked in. Ready when you are."}
         </p>
         <button
           type="submit"
           disabled={isPending || remaining > 0}
-          className="rounded-md bg-brand-500 px-5 py-3 text-base font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-huge"
         >
-          {isPending ? "Seeding quests..." : "Continue"}
+          {isPending ? "Building this week's quests..." : "Start the loop"}
         </button>
       </div>
     </form>

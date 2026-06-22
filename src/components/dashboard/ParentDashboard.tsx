@@ -21,6 +21,13 @@ export type ParentDashboardProps = {
   pendingApprovals: PendingApproval[];
 };
 
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export function ParentDashboard({
   householdName,
   parentName,
@@ -29,100 +36,146 @@ export function ParentDashboard({
   pendingApprovals,
   growthScores,
 }: ParentDashboardProps) {
+  const firstName = parentName.split(" ")[0] || "";
+  const pendingCount = pendingApprovals.length;
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-screen-lg flex-col gap-8 px-6 py-10 pb-32">
-      <header className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs tracking-widest text-ink-secondary uppercase">
-            {parentName ? `Hi, ${parentName.split(" ")[0]}` : "Welcome back"}
-          </span>
-          <div className="flex items-center gap-4 text-xs">
-            <Link
-              href="/settings"
-              className="text-ink-secondary underline-offset-2 hover:underline"
-            >
-              Settings
-            </Link>
-            <Link
-              href="/auth/signout"
-              className="text-ink-muted underline-offset-2 hover:underline"
-            >
-              Sign out
-            </Link>
+    <main className="mx-auto flex min-h-dvh max-w-screen-lg flex-col gap-8 px-5 py-6 pb-32 sm:px-8 sm:py-10">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-base font-medium text-ink-secondary">
+            {greeting()}{firstName ? `, ${firstName}` : ""}.
+          </p>
+          <h1
+            className="mt-1 font-display"
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              fontSize: "var(--text-h1)",
+              lineHeight: 1.05,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {householdName}
+          </h1>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {focusPillars.map((p) => (
+              <span
+                key={p}
+                className="rounded-full px-3 py-1 text-sm font-bold text-white"
+                style={{ backgroundColor: PILLAR_COPY[p].tint }}
+              >
+                {PILLAR_COPY[p].title}
+              </span>
+            ))}
           </div>
         </div>
-        <h1
-          className="font-display"
-          style={{
-            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-            fontSize: "var(--text-h1)",
-            lineHeight: 1.1,
-          }}
-        >
-          {householdName}
-        </h1>
-        <div className="flex flex-wrap gap-2">
-          {focusPillars.map((p) => (
-            <span
-              key={p}
-              className="rounded-full px-3 py-1 text-xs font-medium text-white"
-              style={{ backgroundColor: PILLAR_COPY[p].tint }}
-            >
-              {PILLAR_COPY[p].title}
-            </span>
-          ))}
+        <div className="flex flex-col items-end gap-2 text-sm">
+          <Link
+            href="/settings"
+            className="rounded-full bg-card px-4 py-2 font-medium text-ink-secondary shadow-sm hover:bg-tinted"
+          >
+            Settings
+          </Link>
         </div>
       </header>
 
-      <section className="flex justify-center rounded-lg bg-card p-6 shadow-sm">
-        <FamilyGrowthRadar scores={growthScores} />
-      </section>
+      {pendingCount > 0 && (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between">
+            <h2
+              className="font-display"
+              style={{
+                fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+                fontSize: "1.75rem",
+                letterSpacing: "-0.015em",
+              }}
+            >
+              {pendingCount === 1
+                ? "1 quest to approve"
+                : `${pendingCount} quests to approve`}
+            </h2>
+            <span
+              className="rounded-full px-3 py-1 text-sm font-bold text-white"
+              style={{ backgroundColor: "var(--brand-500)" }}
+            >
+              {pendingCount}
+            </span>
+          </div>
+          <ApprovalQueue items={pendingApprovals} />
+        </section>
+      )}
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-4">
         <h2
-          className="text-sm font-medium tracking-widest text-ink-secondary uppercase"
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "1.75rem",
+            letterSpacing: "-0.015em",
+          }}
         >
           Your family
         </h2>
-        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {kids.map((c) => (
             <ChildCard key={c.childId} {...c} />
           ))}
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-4">
         <h2
-          className="text-sm font-medium tracking-widest text-ink-secondary uppercase"
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "1.75rem",
+            letterSpacing: "-0.015em",
+          }}
         >
-          Waiting for your approval
+          This season
         </h2>
-        <ApprovalQueue items={pendingApprovals} />
+        <div className="flex justify-center rounded-3xl bg-card p-6 shadow-md sm:p-8">
+          <FamilyGrowthRadar scores={growthScores} />
+        </div>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
+      <section className="flex flex-col gap-4">
+        <h2
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "1.75rem",
+            letterSpacing: "-0.015em",
+          }}
+        >
           Family Coach
         </h2>
         <Link
           href="/coach"
-          className="group flex items-start gap-4 rounded-lg bg-card p-5 shadow-sm transition hover:shadow-md"
+          className="group flex items-center gap-4 rounded-3xl bg-card p-5 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
         >
-          <div className="flex size-12 items-center justify-center rounded-full bg-brand-50 text-2xl">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-2xl">
             ☕
           </div>
           <div className="flex-1">
-            <p className="font-medium text-ink-primary">
-              Ask the Family Coach.
+            <p
+              className="font-display"
+              style={{
+                fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+                fontSize: "1.25rem",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Ask the Coach.
             </p>
-            <p className="mt-1 text-sm text-ink-secondary">
-              Tailored to your household, focus pillars, and what your kids
-              have done recently.
+            <p className="mt-0.5 text-base text-ink-secondary">
+              Tailored to your family — what worked, what didn&apos;t, what to
+              try next.
             </p>
           </div>
           <span
             aria-hidden
-            className="text-2xl text-ink-muted transition group-hover:translate-x-0.5 group-hover:text-brand-500"
+            className="text-3xl text-ink-muted transition-all group-hover:translate-x-0.5 group-hover:text-brand-500"
           >
             →
           </span>
