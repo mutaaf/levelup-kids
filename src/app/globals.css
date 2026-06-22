@@ -47,23 +47,37 @@ html,
 body {
   background-color: var(--surface-paper);
   color: var(--ink-primary);
-  font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   font-size: var(--text-body);
-  line-height: 1.55;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
-  line-height: 1.1;
+  /* Quicksand is loaded by next/font under `--font-fraunces` (alias for
+     backwards compat) — rounded, friendly, Apple+Google energy. */
+  font-family: var(--font-fraunces), -apple-system, "SF Pro Display",
+    "Segoe UI", system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1.05;
   color: var(--ink-primary);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
-/* Kid-friendly chunky controls. Keep the cream+terracotta aesthetic;
-   make every tap target large and confidently shaped. */
+/* Any inline component still requesting a Georgia/serif fallback gets
+   overridden — Quicksand is sans, and the kid-friendly aesthetic is sans
+   end-to-end. */
+[style*="Georgia, serif"] {
+  font-family: var(--font-fraunces), -apple-system, "SF Pro Display",
+    "Segoe UI", system-ui, sans-serif !important;
+}
+
+/* Kid-friendly chunky controls. */
 .btn-primary {
   display: inline-flex;
   align-items: center;

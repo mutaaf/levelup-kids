@@ -1,25 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, JetBrains_Mono, Public_Sans } from "next/font/google";
+import { JetBrains_Mono, Quicksand } from "next/font/google";
 import "./globals.css";
 import { SwRegister } from "@/components/pwa/SwRegister";
 
-// Display face — Fraunces variable, optical 9–144 (docs/DESIGN.md §3).
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+// Display face — Quicksand (2026-06-22 rebrand). Rounded, friendly, modern.
+// We expose it under both the `--font-display` token (the new name) AND
+// the historical `--font-fraunces` token so existing inline-styled headings
+// continue to render without per-file edits.
+const displayFont = Quicksand({
+  variable: "--font-fraunces", // backwards-compat alias
   subsets: ["latin"],
-  axes: ["opsz", "SOFT", "WONK"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-// Body face — Söhne is licensed, so v1.0 ships the named open fallback
-// (Public Sans, per docs/DESIGN.md §3). Inter is BANNED.
-const body = Public_Sans({
-  variable: "--font-body",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-// Mono — used only for XP pips, timestamps, and dev preview.
+// Mono — for XP pips, timestamps, dev preview.
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
@@ -42,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#d2562b",
+  themeColor: "#6366f1",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -56,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${body.variable} ${jetbrainsMono.variable}`}
+      className={`${displayFont.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-dvh bg-paper text-ink-primary antialiased">
         {children}
