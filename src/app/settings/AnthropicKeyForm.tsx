@@ -31,10 +31,35 @@ export function AnthropicKeyForm({
       timeStyle: "short",
     });
 
+  /**
+   * Run a server action and trap ANY thrown error before it can bubble into
+   * React's transition machinery. Without this wrapper a server-side throw
+   * (network timeout, malformed RPC response, Vercel returning HTML) crashes
+   * the page with "An unexpected response was received from the server".
+   */
+  async function safeCall<T>(
+    fn: () => Promise<T>,
+  ): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
+    try {
+      return { ok: true, value: await fn() };
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message || "Server didn't respond as expected."
+          : "Server didn't respond as expected.";
+      return { ok: false, error: msg };
+    }
+  }
+
   function onTest() {
     setStatus({ kind: "info", text: "Pinging Anthropic..." });
     startTransition(async () => {
-      const r = await testAnthropicKey(key);
+      const wrapped = await safeCall(() => testAnthropicKey(key));
+      if (!wrapped.ok) {
+        setStatus({ kind: "err", text: wrapped.error });
+        return;
+      }
+      const r = wrapped.value;
       setStatus(
         r.ok
           ? { kind: "ok", text: "Key works. Anthropic accepted the ping." }
@@ -46,7 +71,12 @@ export function AnthropicKeyForm({
   function onSave() {
     setStatus({ kind: "info", text: "Saving..." });
     startTransition(async () => {
-      const r = await saveAnthropicKey(key);
+      const wrapped = await safeCall(() => saveAnthropicKey(key));
+      if (!wrapped.ok) {
+        setStatus({ kind: "err", text: wrapped.error });
+        return;
+      }
+      const r = wrapped.value;
       if (r.ok) {
         setKey("");
         setStatus({
@@ -62,13 +92,23 @@ export function AnthropicKeyForm({
   function onTestThenSave() {
     setStatus({ kind: "info", text: "Pinging Anthropic..." });
     startTransition(async () => {
-      const t = await testAnthropicKey(key);
+      const wrappedT = await safeCall(() => testAnthropicKey(key));
+      if (!wrappedT.ok) {
+        setStatus({ kind: "err", text: wrappedT.error });
+        return;
+      }
+      const t = wrappedT.value;
       if (!t.ok) {
         setStatus({ kind: "err", text: t.error });
         return;
       }
       setStatus({ kind: "info", text: "Ping good. Saving..." });
-      const s = await saveAnthropicKey(key);
+      const wrappedS = await safeCall(() => saveAnthropicKey(key));
+      if (!wrappedS.ok) {
+        setStatus({ kind: "err", text: wrappedS.error });
+        return;
+      }
+      const s = wrappedS.value;
       if (s.ok) {
         setKey("");
         setStatus({
@@ -87,7 +127,12 @@ export function AnthropicKeyForm({
     }
     setStatus({ kind: "info", text: "Clearing..." });
     startTransition(async () => {
-      const r = await clearAnthropicKey();
+      const wrapped = await safeCall(() => clearAnthropicKey());
+      if (!wrapped.ok) {
+        setStatus({ kind: "err", text: wrapped.error });
+        return;
+      }
+      const r = wrapped.value;
       setStatus(
         r.ok
           ? { kind: "ok", text: "Key removed." }

@@ -21,6 +21,8 @@ export interface CallAIOptions {
   temperature?: number;
   /** Per-call override (household BYOK). When set, ANTHROPIC_API_KEY env is ignored. */
   apiKey?: string;
+  /** Override the default model id (e.g. for a fast Haiku ping). */
+  model?: string;
 }
 
 export interface CallAIResult {
@@ -47,7 +49,7 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResult> {
   const turnMessages = options.messages.filter((m) => m.role !== "system");
 
   const response = await client.messages.create({
-    model: DEFAULT_MODEL,
+    model: options.model ?? DEFAULT_MODEL,
     max_tokens: options.maxTokens ?? 1024,
     temperature: options.temperature ?? 0.7,
     system:

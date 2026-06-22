@@ -11,6 +11,10 @@ import { AnthropicKeyForm } from "./AnthropicKeyForm";
 import { DisplayPairingCard } from "@/components/display/DisplayPairingCard";
 
 export const dynamic = "force-dynamic";
+// Bump the function timeout for the Anthropic ping (default 10s on Vercel
+// hobby is too tight for a cold start + SDK init + round-trip). Applies to
+// every server action invoked from this route.
+export const maxDuration = 30;
 
 export default async function SettingsPage() {
   const supabase = await createServerSupabase();
