@@ -1,13 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import {
+  carryCookies,
+  createRouteHandlerSupabase,
+} from "@/lib/supabase/route-handler";
 
-export async function GET(request: NextRequest): Promise<Response> {
-  const supabase = await createServerSupabase();
+async function clearSessionAndRedirect(
+  request: NextRequest,
+): Promise<Response> {
+  const { supabase, carrier } = createRouteHandlerSupabase(request);
   await supabase.auth.signOut();
-  return NextResponse.redirect(new URL("/", request.url));
+  return carryCookies(carrier, NextResponse.redirect(new URL("/", request.url)));
 }
 
-// Allow POST too for forms that prefer it.
+export async function GET(request: NextRequest): Promise<Response> {
+  return clearSessionAndRedirect(request);
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
-  return GET(request);
+  return clearSessionAndRedirect(request);
 }
