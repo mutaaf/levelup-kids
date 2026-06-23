@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 
 export type QuestActionResult =
@@ -15,11 +15,7 @@ export async function markQuestReady(
   questId: string,
 ): Promise<QuestActionResult> {
   if (!questId) return { ok: false, error: "Missing questId." };
-
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();
@@ -64,11 +60,7 @@ export async function approveQuest(
   completionId: string,
 ): Promise<QuestActionResult> {
   if (!completionId) return { ok: false, error: "Missing completionId." };
-
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();
@@ -125,11 +117,7 @@ export async function rejectCompletion(
   completionId: string,
 ): Promise<QuestActionResult> {
   if (!completionId) return { ok: false, error: "Missing completionId." };
-
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();

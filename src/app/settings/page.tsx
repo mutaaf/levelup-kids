@@ -2,8 +2,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { getHouseholdAnthropicKeyMask } from "@/lib/ai/household-key";
 import { listDisplayTokens } from "@/lib/display/tokens";
@@ -17,10 +17,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export default async function SettingsPage() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Pages use getSessionUser (read cookie, no refresh). Middleware does the
+  // refresh. Server components can't write rotated cookies anyway.
+  const user = await getSessionUser();
   if (!user) redirect("/auth/signin?next=/settings");
 
   const svc = createServiceSupabase();

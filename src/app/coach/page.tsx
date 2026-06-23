@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { getHouseholdAnthropicKey } from "@/lib/ai/household-key";
 import { CoachChat } from "./CoachChat";
@@ -10,10 +10,7 @@ import { CoachChat } from "./CoachChat";
 export const dynamic = "force-dynamic";
 
 export default async function CoachPage() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/auth/signin?next=/coach");
 
   const svc = createServiceSupabase();

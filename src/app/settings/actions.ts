@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { callAI } from "@/lib/ai/client";
 import {
@@ -23,10 +23,7 @@ export type KeyActionResult =
 const KEY_RE = /^sk-ant-[A-Za-z0-9_-]{20,}$/;
 
 async function requireHouseholdId(): Promise<string | { error: string }> {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { error: "Not signed in." };
   const svc = createServiceSupabase();
   const { data: parent } = await svc

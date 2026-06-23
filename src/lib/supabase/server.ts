@@ -2,7 +2,11 @@ import {
   createServerClient,
   type CookieMethodsServer,
 } from "@supabase/ssr";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  createClient,
+  type SupabaseClient,
+  type User,
+} from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 // Server-side Supabase client using the SERVICE ROLE key. Bypasses RLS — only
@@ -63,3 +67,30 @@ export async function createServerSupabase(): Promise<SupabaseClient> {
   };
   return createServerClient(url, anonKey, { cookies: cookieMethods });
 }
+
+/**
+ * Read the current user from the session cookie WITHOUT triggering a token
+ * refresh.
+ *
+ * This is the ONLY safe way to read the user from a page server component or
+ * a server action / route handler that ISN'T going to write the refreshed
+ * cookies back to a Response.
+ *
+ * Background: supabase.auth.getUser() may refresh the access token. The
+ * refresh ROTATES the refresh token at Supabase's server. If we can't
+ * persist the new tokens to cookies (server components can't write cookies;
+ * route handlers using cookies() from next/headers don't reliably propagate
+ * to fresh NextResponse instances), the browser keeps the OLD refresh token
+ * — which Supabase now considers used. The NEXT navigation looks logged
+ * out.
+ *
+ * getSession() reads from the cookie store directly. No API call, no
+ * refresh. Middleware (which CAN write cookies) handles validation and
+ * refresh once per request — pages and actions trust that.
+ */
+export async function getSessionUser(): Promise<User | null> {
+  const supabase = await createServerSupabase();
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user ?? null;
+}
+

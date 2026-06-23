@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { isPillarSlug, type PillarSlug } from "@/lib/types/pillar";
 import { seedFirstWeek } from "@/lib/quests/selector";
@@ -26,11 +26,7 @@ export async function setFocusPillars(
     if (!isPillarSlug(p)) return { ok: false, error: `Unknown pillar: ${p}` };
     validated.push(p);
   }
-
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();

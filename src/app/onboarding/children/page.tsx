@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { ChildrenForm } from "./ChildrenForm";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
@@ -9,10 +9,7 @@ import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 export const dynamic = "force-dynamic";
 
 export default async function ChildrenOnboardingPage() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/auth/signin?next=/onboarding/children");
 
   const svc = createServiceSupabase();

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { PILLARS } from "@/lib/types/pillar";
 import { PILLAR_COPY } from "@/lib/pillars/copy";
@@ -11,10 +11,7 @@ import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 export const dynamic = "force-dynamic";
 
 export default async function PillarsOnboardingPage() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/auth/signin?next=/onboarding/pillars");
 
   const svc = createServiceSupabase();

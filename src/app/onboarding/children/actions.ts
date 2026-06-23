@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { isAvatar } from "@/lib/children/avatars";
 
@@ -38,11 +38,7 @@ export async function setChildren(
       return { ok: false, error: "Pick an avatar for every child." };
     }
   }
-
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();

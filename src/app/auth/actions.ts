@@ -1,8 +1,8 @@
 "use server";
 
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 
 export type EnsureParentsResult = { next: "/onboarding/household" | "/" };
@@ -19,10 +19,7 @@ export type EnsureParentsResult = { next: "/onboarding/household" | "/" };
 export async function ensureParentsRow(input: {
   email: string;
 }): Promise<EnsureParentsResult> {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) {
     // Shouldn't happen — client just verified — but treat as "go to signin"
     // by returning the onboarding path. Middleware will gate.

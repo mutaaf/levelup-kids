@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import {
   createDisplayToken,
@@ -17,10 +17,7 @@ export type DisplayActionResult =
 async function requireHouseholdAndUser(): Promise<
   { householdId: string; userId: string } | { error: string }
 > {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { error: "Not signed in." };
   const svc = createServiceSupabase();
   const { data: parent } = await svc

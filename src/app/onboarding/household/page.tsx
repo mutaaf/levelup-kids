@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { HouseholdForm } from "./HouseholdForm";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
@@ -9,10 +9,7 @@ import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 export const dynamic = "force-dynamic";
 
 export default async function HouseholdOnboardingPage() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/auth/signin?next=/onboarding/household");
 
   // If they already have a household, skip this step.

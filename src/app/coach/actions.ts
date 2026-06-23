@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { callAI } from "@/lib/ai/client";
 import {
@@ -31,10 +31,7 @@ export async function sendCoachMessage(
   if (trimmed.length > 2000)
     return { ok: false, error: "Keep it under 2000 characters." };
 
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();

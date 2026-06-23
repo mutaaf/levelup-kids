@@ -1,8 +1,8 @@
 import { cookies as nextCookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
@@ -12,9 +12,10 @@ import type { PillarSlug } from "@/lib/types/pillar";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const supabase = await createServerSupabase();
-  const userResult = await supabase.auth.getUser();
-  const user = userResult.data.user;
+  // getSessionUser reads the cookie WITHOUT triggering a refresh — server
+  // components can't write rotated cookies, and any refresh attempt here
+  // would silently invalidate the session. Middleware does refresh.
+  const user = await getSessionUser();
 
   // DIAGNOSTIC (2026-06-22): user is reporting they end up on Landing
   // after sign-in succeeds. Detect the "cookies present but getUser
@@ -28,7 +29,7 @@ export default async function Home() {
       .filter((n) => n.startsWith("sb-"));
     if (sbCookies.length > 0) {
       console.warn(
-        `[/] no user but sb cookies present (${sbCookies.join(",")}) — getUser err=${userResult.error?.message ?? "none"}`,
+        `[/] no user but sb cookies present (${sbCookies.join(",")}) — getSession returned null`,
       );
       return (
         <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-6 px-6 py-12">
@@ -51,8 +52,7 @@ export default async function Home() {
               {sbCookies.join("\n")}
             </pre>
             <p className="mt-3">
-              <strong>getUser error:</strong>{" "}
-              {userResult.error?.message ?? "(none)"}
+              <strong>getSession returned:</strong> null
             </p>
           </div>
           <div className="flex gap-3">

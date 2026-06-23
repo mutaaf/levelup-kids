@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 
 export type CreateHouseholdInput = {
@@ -27,11 +27,7 @@ export async function createHousehold(
   if (!parentName) return { ok: false, error: "Your name is required." };
   if (parentName.length > 60)
     return { ok: false, error: "Your name must be 60 characters or fewer." };
-
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   const svc = createServiceSupabase();

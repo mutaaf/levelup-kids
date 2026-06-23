@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  createServerSupabase,
   createServiceSupabase,
+  getSessionUser,
 } from "@/lib/supabase/server";
 import { level } from "@/lib/growth/level";
 import { QuestCard } from "@/components/quests/QuestCard";
@@ -17,10 +17,7 @@ type ChildDashProps = {
 export default async function ChildDashboardPage({ params }: ChildDashProps) {
   const { childId } = await params;
 
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect(`/auth/signin?next=/kids/${childId}`);
 
   const svc = createServiceSupabase();
