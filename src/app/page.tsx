@@ -1,6 +1,7 @@
 import { cookies as nextCookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  createServerSupabase,
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
@@ -12,15 +13,26 @@ import type { PillarSlug } from "@/lib/types/pillar";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  // getSessionUser reads the cookie WITHOUT triggering a refresh — server
-  // components can't write rotated cookies, and any refresh attempt here
-  // would silently invalidate the session. Middleware does refresh.
-  const user = await getSessionUser();
+  // getSessionUser reads the cookie WITHOUT triggering a refresh.
+  let user = await getSessionUser();
+  let getUserFallbackUsed = false;
+  let getUserErr: string | null = null;
 
-  // DIAGNOSTIC (2026-06-22): user is reporting they end up on Landing
-  // after sign-in succeeds. Detect the "cookies present but getUser
-  // failed" case and surface it loudly instead of silently rendering
-  // Landing — that's what's making the bug feel like a session-loss.
+  // If getSession returned null, try getUser as a fallback — sometimes
+  // getSession is more strict than getUser about reading the cookie.
+  if (!user) {
+    const supabase = await createServerSupabase();
+    const r = await supabase.auth.getUser();
+    if (r.data.user) {
+      user = r.data.user;
+      getUserFallbackUsed = true;
+    } else {
+      getUserErr = r.error?.message ?? null;
+    }
+  }
+
+  // DIAGNOSTIC: if STILL no user but cookies are present, render the
+  // diagnostic page instead of Landing.
   if (!user) {
     const store = await nextCookies();
     const sbCookies = store
@@ -29,7 +41,7 @@ export default async function Home() {
       .filter((n) => n.startsWith("sb-"));
     if (sbCookies.length > 0) {
       console.warn(
-        `[/] no user but sb cookies present (${sbCookies.join(",")}) — getSession returned null`,
+        `[/] no user but sb cookies present (${sbCookies.join(",")}) — getSession null + getUser err=${getUserErr ?? "none"}`,
       );
       return (
         <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-6 px-6 py-12">
@@ -41,8 +53,7 @@ export default async function Home() {
           </h1>
           <p className="text-ink-secondary">
             Your sign-in cookies are present but the server couldn&apos;t
-            validate them on this request. This is the bug we&apos;ve been
-            chasing.
+            validate them on this request.
           </p>
           <div className="rounded-2xl bg-tinted p-5 font-mono text-xs">
             <p>
@@ -54,20 +65,17 @@ export default async function Home() {
             <p className="mt-3">
               <strong>getSession returned:</strong> null
             </p>
+            <p className="mt-1">
+              <strong>getUser error:</strong> {getUserErr ?? "(none)"}
+            </p>
           </div>
           <div className="flex gap-3">
-            <a
-              href="/api/debug/whoami"
-              className="btn-primary"
-              // eslint-disable-next-line @next/next/no-html-link-for-pages
-            >
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/api/debug/whoami" className="btn-primary">
               Open whoami JSON
             </a>
-            <a
-              href="/auth/signout"
-              className="btn-secondary"
-              // eslint-disable-next-line @next/next/no-html-link-for-pages
-            >
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/auth/signout" className="btn-secondary">
               Sign out + start over
             </a>
           </div>
@@ -75,6 +83,12 @@ export default async function Home() {
       );
     }
     return <Landing />;
+  }
+
+  // If we got here via the getUser fallback, log it so we can see in Vercel
+  // logs how often getSession is failing where getUser succeeds.
+  if (getUserFallbackUsed) {
+    console.warn(`[/] getSession null but getUser succeeded for ${user.id}`);
   }
 
   const svc = createServiceSupabase();
