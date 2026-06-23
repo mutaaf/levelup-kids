@@ -132,6 +132,30 @@ export default async function Home() {
     badgeCountByChild.set(id, (badgeCountByChild.get(id) ?? 0) + 1);
   }
 
+  // Per-child approved-completion count for each of the last 7 days,
+  // oldest → newest. Powers the WeekSparkline on each ChildCard.
+  const weekDayKeys: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    weekDayKeys.push(d.toISOString().slice(0, 10));
+  }
+  const weekActivityByChild = new Map<string, number[]>();
+  for (const c of children) {
+    weekActivityByChild.set(
+      c.id as string,
+      new Array(7).fill(0) as number[],
+    );
+  }
+  for (const comp of allCompletions ?? []) {
+    if (!comp.approved_at) continue;
+    const day = (comp.approved_at as string).slice(0, 10);
+    const idx = weekDayKeys.indexOf(day);
+    if (idx < 0) continue;
+    const arr = weekActivityByChild.get(comp.child_id as string);
+    if (arr && arr[idx] !== undefined) arr[idx] += 1;
+  }
+
   const childCards = children.map((c) => {
     const t = totals.get(c.id as string)!;
     return {
@@ -143,8 +167,57 @@ export default async function Home() {
       todayTotal: t.total,
       streakDays: streakFor(t.days),
       badgeCount: badgeCountByChild.get(c.id as string) ?? 0,
+      weekActivity: weekActivityByChild.get(c.id as string) ?? [],
     };
   });
+
+  // Recent wins — last 4 events across the household (quest approvals +
+  // badge earns). Renders the "things just happened" band at the top.
+  const recentApprovals = (allCompletions ?? [])
+    .filter((c) => c.approved_at)
+    .sort(
+      (a, b) =>
+        new Date(b.approved_at as string).getTime() -
+        new Date(a.approved_at as string).getTime(),
+    )
+    .slice(0, 4);
+  const childById = new Map(
+    children.map((c) => [c.id as string, c.name as string]),
+  );
+  const { data: recentBadges } = await svc
+    .from("child_achievements")
+    .select("badge_id, earned_at, child_id")
+    .in("child_id", childIds)
+    .order("earned_at", { ascending: false })
+    .limit(4);
+  const recentWins: Array<{
+    kind: "approval" | "badge";
+    childName: string;
+    label: string;
+    pillar: PillarSlug | null;
+    at: string;
+  }> = [];
+  for (const a of recentApprovals) {
+    const q = a.quests as unknown as { pillar?: PillarSlug } | null;
+    recentWins.push({
+      kind: "approval",
+      childName: childById.get(a.child_id as string) ?? "",
+      label: `+${(a.xp_awarded as number | null) ?? 0} XP`,
+      pillar: (q?.pillar ?? null) as PillarSlug | null,
+      at: a.approved_at as string,
+    });
+  }
+  for (const b of recentBadges ?? []) {
+    recentWins.push({
+      kind: "badge",
+      childName: childById.get(b.child_id as string) ?? "",
+      label: `Badge: ${b.badge_id as string}`,
+      pillar: null,
+      at: b.earned_at as string,
+    });
+  }
+  recentWins.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const topRecentWins = recentWins.slice(0, 4);
 
   const pendingApprovals = (pending ?? []).map((p) => {
     const quest = p.quests as unknown as {
@@ -188,6 +261,7 @@ export default async function Home() {
       kids={childCards}
       pendingApprovals={pendingApprovals}
       growthScores={growthScores}
+      recentWins={topRecentWins}
     />
   );
 }
