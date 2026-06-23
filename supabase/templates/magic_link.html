@@ -19,10 +19,7 @@
       cellpadding="0"
       cellspacing="0"
       border="0"
-      style="
-        background-color: #f7f8fb;
-        padding: 40px 16px;
-      "
+      style="background-color: #f7f8fb; padding: 40px 16px;"
     >
       <tr>
         <td align="center">
@@ -87,7 +84,7 @@
               </td>
             </tr>
             <tr>
-              <td style="padding: 24px 36px 8px 36px;">
+              <td style="padding: 24px 36px 0 36px;">
                 <h1
                   style="
                     margin: 0 0 12px 0;
@@ -98,66 +95,33 @@
                     font-weight: 700;
                   "
                 >
-                  Your sign-in link is ready.
+                  Your sign-in code.
                 </h1>
-                <p style="margin: 0 0 28px 0; color: #475569; font-size: 17px;">
-                  Tap the button below to sign in. The link expires in 60
-                  minutes and can only be used once.
+                <p style="margin: 0 0 24px 0; color: #475569; font-size: 17px;">
+                  Type this 6-digit code into the LevelUp Kids tab you just
+                  opened. The code expires in 60 minutes.
                 </p>
               </td>
             </tr>
             <tr>
-              <td style="padding: 0 36px 28px 36px;">
-                <table
-                  role="presentation"
-                  cellpadding="0"
-                  cellspacing="0"
-                  border="0"
-                >
-                  <tr>
-                    <td
-                      align="center"
-                      style="
-                        background-color: #6366f1;
-                        border-radius: 16px;
-                        box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.45);
-                      "
-                    >
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        style="
-                          display: inline-block;
-                          padding: 16px 28px;
-                          color: #ffffff;
-                          text-decoration: none;
-                          font-weight: 700;
-                          font-size: 17px;
-                          letter-spacing: -0.01em;
-                        "
-                        >Sign in to LevelUp Kids →</a
-                      >
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 0 36px 28px 36px;">
-                <p style="margin: 0 0 6px 0; color: #475569; font-size: 14px;">
-                  Or paste this link into your browser:
-                </p>
-                <p
+              <td align="center" style="padding: 4px 36px 28px 36px;">
+                <div
                   style="
-                    margin: 0;
-                    color: #6366f1;
-                    font-size: 13px;
-                    word-break: break-all;
+                    display: inline-block;
+                    padding: 20px 28px;
+                    background-color: #eef2ff;
+                    border: 2px solid #c7d2fe;
+                    border-radius: 18px;
+                    color: #4f46e5;
+                    font-size: 36px;
+                    font-weight: 700;
+                    letter-spacing: 0.35em;
                     font-family: ui-monospace, 'SF Mono', Menlo, Consolas,
                       monospace;
                   "
                 >
-                  {{ .ConfirmationURL }}
-                </p>
+                  {{ .Token }}
+                </div>
               </td>
             </tr>
             <tr>
@@ -165,7 +129,7 @@
                 <p style="margin: 0; color: #64748b; font-size: 13px;">
                   You're receiving this because someone (hopefully you)
                   entered this address at LevelUp Kids. If it wasn't you,
-                  ignore this email — the link will expire on its own and
+                  ignore this email — the code expires on its own and
                   nothing happens.
                 </p>
               </td>
