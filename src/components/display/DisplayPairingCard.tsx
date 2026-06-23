@@ -24,6 +24,27 @@ function ago(iso: string | null): string {
   return `${d}d ago`;
 }
 
+// QR config:
+//   - margin 4 = the QR spec's recommended quiet zone (anything less can break
+//     mid-distance scanning)
+//   - errorCorrectionLevel 'M' = ~15% damage tolerance (fine for a phone scan
+//     across a room)
+//   - cool slate dark on cool white (matches the new theme; avoids warm bias)
+//   - width 256 = enough modules to be scannable from arm's length on a typical
+//     phone display; matches the 256px Tailwind size-64 container below.
+async function makeQr(url: string): Promise<string> {
+  return QRCode.toString(url, {
+    type: "svg",
+    margin: 4,
+    width: 256,
+    errorCorrectionLevel: "M",
+    color: {
+      dark: "#0f172a",
+      light: "#ffffff",
+    },
+  });
+}
+
 export function DisplayPairingCard({
   displays,
   baseUrl,
@@ -34,21 +55,10 @@ export function DisplayPairingCard({
   const [label, setLabel] = useState("");
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ url: string; qrSvg: string } | null>(
-    null,
-  );
-
-  async function makeQr(url: string): Promise<string> {
-    return QRCode.toString(url, {
-      type: "svg",
-      margin: 1,
-      width: 240,
-      color: {
-        dark: "#1f1b16",
-        light: "#faf7f2",
-      },
-    });
-  }
+  const [created, setCreated] = useState<
+    { url: string; qrSvg: string } | null
+  >(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   function onCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,7 +77,9 @@ export function DisplayPairingCard({
   }
 
   function onRevoke(token: string) {
-    if (!confirm("Remove this display? The URL will stop working immediately.")) {
+    if (
+      !confirm("Remove this display? The URL will stop working immediately.")
+    ) {
       return;
     }
     setError(null);
@@ -80,36 +92,52 @@ export function DisplayPairingCard({
   async function onCopy(url: string) {
     try {
       await navigator.clipboard.writeText(url);
+      setCopied(url);
+      setTimeout(() => setCopied((cur) => (cur === url ? null : cur)), 1800);
     } catch {
       // ignore
     }
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg bg-card p-5 shadow-sm">
+    <div className="flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-sm">
+      {/* ---------- Just-created success block ---------- */}
       {created && (
-        <div className="flex flex-col gap-4 rounded-md border border-success/30 bg-success/5 p-4 sm:flex-row sm:items-center">
-          <div
-            className="size-32 shrink-0 rounded-md bg-paper p-2"
-            dangerouslySetInnerHTML={{ __html: created.qrSvg }}
-          />
-          <div className="flex-1">
+        <div className="flex flex-col gap-5 rounded-2xl border border-success/30 bg-success/5 p-5 sm:flex-row sm:items-start">
+          <div className="flex shrink-0 justify-center">
+            <div
+              className="flex aspect-square w-[240px] items-center justify-center rounded-2xl bg-white p-3 shadow-sm sm:w-[200px] lg:w-[240px]"
+              // QR svg renders at 256px intrinsic; we let it scale to the
+              // container via the [&_svg]:* utility instead of fighting the
+              // SVG's own width attr.
+            >
+              <div
+                className="h-full w-full [&_svg]:h-full [&_svg]:w-full"
+                dangerouslySetInnerHTML={{ __html: created.qrSvg }}
+              />
+            </div>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
             <p
-              className="text-sm font-medium"
+              className="text-base font-semibold"
               style={{ color: "var(--success)" }}
             >
-              Display ready. Open this URL on your iPad / Echo Show / TV.
+              Display ready.
             </p>
-            <p className="mt-2 font-mono text-xs break-all text-ink-secondary">
+            <p className="text-sm text-ink-secondary">
+              Scan the QR code on your iPad / Echo Show / TV — or open this URL
+              there:
+            </p>
+            <p className="rounded-lg bg-tinted px-3 py-2 font-mono text-xs break-all text-ink-primary">
               {created.url}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => onCopy(created.url)}
                 className="rounded-md border border-ink-muted/30 px-3 py-1.5 text-sm text-ink-primary hover:bg-tinted"
               >
-                Copy URL
+                {copied === created.url ? "Copied!" : "Copy URL"}
               </button>
               <a
                 href={created.url}
@@ -131,9 +159,10 @@ export function DisplayPairingCard({
         </div>
       )}
 
+      {/* ---------- Existing paired displays list ---------- */}
       {displays.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs tracking-widest text-ink-muted uppercase">
+          <p className="text-xs font-semibold tracking-widest text-ink-muted uppercase">
             Paired displays
           </p>
           {displays.map((d) => {
@@ -141,10 +170,10 @@ export function DisplayPairingCard({
             return (
               <div
                 key={d.token}
-                className="flex flex-col gap-2 rounded-md border border-ink-muted/15 p-3 sm:flex-row sm:items-center sm:gap-4"
+                className="flex flex-col gap-3 rounded-xl border border-ink-muted/15 p-3 sm:flex-row sm:items-center sm:gap-4"
               >
-                <div className="flex-1">
-                  <p className="font-medium text-ink-primary">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-ink-primary">
                     {d.label || "Untitled display"}
                   </p>
                   <p className="text-xs text-ink-muted">
@@ -152,13 +181,13 @@ export function DisplayPairingCard({
                     {new Date(d.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex gap-2 sm:ml-auto">
+                <div className="flex flex-wrap gap-2 sm:ml-auto">
                   <button
                     type="button"
                     onClick={() => onCopy(url)}
                     className="rounded-md border border-ink-muted/30 px-3 py-1.5 text-xs text-ink-primary hover:bg-tinted"
                   >
-                    Copy URL
+                    {copied === url ? "Copied!" : "Copy URL"}
                   </button>
                   <a
                     href={url}
@@ -183,9 +212,16 @@ export function DisplayPairingCard({
         </div>
       )}
 
-      <form onSubmit={onCreate} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      {/* ---------- Add a new display ---------- */}
+      <form
+        onSubmit={onCreate}
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+      >
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="display-label" className="text-sm font-medium text-ink-primary">
+          <label
+            htmlFor="display-label"
+            className="text-sm font-medium text-ink-primary"
+          >
             Add a display
           </label>
           <input

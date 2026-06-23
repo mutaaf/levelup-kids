@@ -47,15 +47,33 @@ export async function setFocusPillars(
     .eq("id", householdId);
   if (hhErr) return { ok: false, error: hhErr.message };
 
-  // Load children to seed quests for each.
+  // Load children to seed quests for each (need age for the selector's
+  // age-filter against the global library + household custom quests).
   const { data: kids, error: kErr } = await svc
     .from("children")
-    .select("id")
+    .select("id, age")
     .eq("household_id", householdId);
   if (kErr) return { ok: false, error: kErr.message };
   if (!kids || kids.length === 0) {
     return { ok: false, error: "Add at least one child before picking pillars." };
   }
+
+  // Load this household's custom quests (active only) so they're eligible
+  // for the first-week seeding alongside the global library.
+  const { data: customRows } = await svc
+    .from("household_quests")
+    .select("title, description, pillar, age_min, age_max, xp_reward")
+    .eq("household_id", householdId)
+    .eq("is_active", true);
+  const customTemplates = (customRows ?? []).map((r) => ({
+    pillar: r.pillar as PillarSlug,
+    title: r.title as string,
+    description: (r.description as string | null) ?? "",
+    xpReward: (r.xp_reward as number | null) ?? 5,
+    difficulty: 1 as const,
+    ageMin: (r.age_min as number | null) ?? 4,
+    ageMax: (r.age_max as number | null) ?? 17,
+  }));
 
   // Clear any existing quests for these children, then seed the first week.
   // (Idempotent: if onboarding is rerun the seed is fresh.)
@@ -63,8 +81,12 @@ export async function setFocusPillars(
   await svc.from("quests").delete().in("child_id", childIds);
 
   const rows = seedFirstWeek({
-    children: kids.map((c) => ({ id: c.id as string })),
+    children: kids.map((c) => ({
+      id: c.id as string,
+      age: (c.age as number | null) ?? 7,
+    })),
     focusPillars: validated,
+    customTemplates,
   });
   if (rows.length > 0) {
     const { error: qErr } = await svc.from("quests").insert(rows);
