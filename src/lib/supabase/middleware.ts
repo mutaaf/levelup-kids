@@ -26,6 +26,10 @@ export function isPublicPath(pathname: string): boolean {
   // Diagnostic endpoint must reach the SDK even when the session is
   // invalid — so we can report exactly what the server sees.
   if (normalized === "/api/debug/whoami") return true;
+  // Post-verifyOtp setup endpoint: cookies are JUST being set; we let
+  // the route handler verify the session itself rather than middleware
+  // bouncing it before it can even read cookies().
+  if (normalized === "/api/auth/ensure-parents") return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 

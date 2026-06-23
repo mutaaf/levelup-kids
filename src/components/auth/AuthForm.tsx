@@ -1,9 +1,41 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { ensureParentsRow } from "@/app/auth/actions";
+
+async function ensureParentsViaApi(
+  email: string,
+): Promise<{ ok: true; next: string } | { ok: false; error: string }> {
+  try {
+    const r = await fetch("/api/auth/ensure-parents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+      // Must run AFTER verifyOtp wrote the session cookies to document.cookie.
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    const text = await r.text();
+    if (!text) {
+      return { ok: false, error: `Empty response (HTTP ${r.status})` };
+    }
+    try {
+      return JSON.parse(text) as
+        | { ok: true; next: string }
+        | { ok: false; error: string };
+    } catch {
+      return {
+        ok: false,
+        error: `Unparseable response (HTTP ${r.status}): ${text.slice(0, 100)}`,
+      };
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Network error",
+    };
+  }
+}
 
 export type AuthMode = "signup" | "signin";
 
@@ -34,7 +66,6 @@ type Phase =
   | { kind: "success" };
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter();
   const copy = COPY[mode];
   const [phase, setPhase] = useState<Phase>({ kind: "enter-email" });
   const [email, setEmail] = useState("");
@@ -117,14 +148,20 @@ export function AuthForm({ mode }: AuthFormProps) {
         );
         return;
       }
-      // The browser client now has the session cookies. Ensure the
-      // parents row exists, then bounce to the right next step.
-      const ensure = await ensureParentsRow({
-        email: data.user.email ?? phase.email,
-      });
+      // Browser supabase-js has now set the session cookies via document.cookie.
+      // Tell the server to read them + ensure the parents row, then HARD-NAV
+      // to wherever it tells us. Hard nav (window.location.replace) is the
+      // only way to guarantee the server side reads the freshest cookies.
+      const ensure = await ensureParentsViaApi(
+        data.user.email ?? phase.email,
+      );
+      if (!ensure.ok) {
+        setPhase({ kind: "enter-code", email: phase.email });
+        setError(ensure.error);
+        return;
+      }
       setPhase({ kind: "success" });
-      router.push(ensure.next);
-      router.refresh();
+      window.location.replace(ensure.next);
     } catch (e) {
       setPhase({ kind: "enter-code", email: phase.email });
       setError(e instanceof Error ? e.message : "Verification failed.");
