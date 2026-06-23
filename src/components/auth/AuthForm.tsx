@@ -6,10 +6,9 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 /** POST /api/auth/verify on the server — server runs verifyOtp + sets
  *  cookies + ensures parents row + returns {next}. No client-side cookie
  *  writes anywhere. */
-async function verifyCodeOnServer(
-  email: string,
-  code: string,
-): Promise<{ ok: true; next: string } | { ok: false; error: string }> {
+/** Verify the OTP server-side. Returns the full response object so we
+ *  can show the debug block in the UI when sign-in finishes. */
+async function verifyCodeOnServer(email: string, code: string) {
   try {
     const r = await fetch("/api/auth/verify", {
       method: "POST",
@@ -20,22 +19,39 @@ async function verifyCodeOnServer(
     });
     const text = await r.text();
     if (!text) {
-      return { ok: false, error: `Empty response (HTTP ${r.status})` };
+      return {
+        ok: false as const,
+        error: `Empty response (HTTP ${r.status})`,
+      };
     }
     try {
       return JSON.parse(text) as
-        | { ok: true; next: string }
+        | { ok: true; next: string; debug?: unknown }
         | { ok: false; error: string };
     } catch {
       return {
-        ok: false,
+        ok: false as const,
         error: `Unparseable response (HTTP ${r.status}): ${text.slice(0, 100)}`,
       };
     }
   } catch (e) {
     return {
-      ok: false,
+      ok: false as const,
       error: e instanceof Error ? e.message : "Network error",
+    };
+  }
+}
+
+async function fetchWhoami(): Promise<unknown> {
+  try {
+    const r = await fetch("/api/debug/whoami", {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    return await r.json();
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "whoami fetch failed",
     };
   }
 }
@@ -62,11 +78,16 @@ const COPY: Record<AuthMode, { h1: string; description: string }> = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CODE_RE = /^\d{6}$/;
 
+type DiagnosticBlob = {
+  verifyResponse: unknown;
+  whoamiResponse: unknown;
+};
+
 type Phase =
   | { kind: "enter-email" }
   | { kind: "enter-code"; email: string }
   | { kind: "verifying" }
-  | { kind: "success" };
+  | { kind: "success"; next: string; diag: DiagnosticBlob };
 
 export function AuthForm({ mode }: AuthFormProps) {
   const copy = COPY[mode];
@@ -136,20 +157,23 @@ export function AuthForm({ mode }: AuthFormProps) {
     setSubmitting(true);
     setPhase({ kind: "verifying" });
     try {
-      // SERVER-SIDE verifyOtp. Server runs the verification, sets cookies
-      // via proper HttpOnly+Secure Set-Cookie headers (the format
-      // @supabase/ssr's server reader expects on subsequent requests),
-      // upserts the parents row, and tells us where to go next.
       const result = await verifyCodeOnServer(phase.email, trimmed);
       if (!result.ok) {
         setPhase({ kind: "enter-code", email: phase.email });
         setError(result.error);
         return;
       }
-      setPhase({ kind: "success" });
-      // Hard nav so the destination page makes a clean request with the
-      // freshly-set cookies, no React/router cache anywhere in the path.
-      window.location.replace(result.next);
+      // DIAGNOSTIC PATH (2026-06-22): cookies aren't landing despite
+      // multiple architecture changes. Don't auto-nav — fetch whoami
+      // IMMEDIATELY after verify and show both responses in the UI so
+      // we can see whether the session persists across this single fetch
+      // round-trip. The user copies the JSON back.
+      const whoami = await fetchWhoami();
+      setPhase({
+        kind: "success",
+        next: result.next,
+        diag: { verifyResponse: result, whoamiResponse: whoami },
+      });
     } catch (e) {
       setPhase({ kind: "enter-code", email: phase.email });
       setError(e instanceof Error ? e.message : "Verification failed.");
@@ -165,25 +189,72 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   if (phase.kind === "success") {
+    const verifyJson = JSON.stringify(phase.diag.verifyResponse, null, 2);
+    const whoamiJson = JSON.stringify(phase.diag.whoamiResponse, null, 2);
     return (
       <section
         aria-live="polite"
-        className="mx-auto flex w-full max-w-md flex-col items-center gap-3 text-center"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-4"
       >
-        <div
-          className="flex size-14 items-center justify-center rounded-2xl text-2xl text-white shadow-md"
-          style={{ backgroundColor: "var(--success)" }}
-          aria-hidden
-        >
-          ✓
+        <div className="flex items-center gap-3 text-center">
+          <div
+            className="flex size-12 items-center justify-center rounded-2xl text-xl text-white shadow-md"
+            style={{ backgroundColor: "var(--success)" }}
+            aria-hidden
+          >
+            ✓
+          </div>
+          <p
+            className="font-display text-xl"
+            style={{ fontFamily: "var(--font-fraunces)" }}
+          >
+            Verify call returned. Cookie diagnostic below.
+          </p>
         </div>
-        <h2
-          className="font-display text-2xl"
-          style={{ fontFamily: "var(--font-fraunces)" }}
-        >
-          You&apos;re in.
-        </h2>
-        <p className="text-base text-ink-secondary">Loading your family…</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-ink-secondary">
+            /api/auth/verify response
+          </p>
+          <pre
+            className="overflow-x-auto rounded-2xl bg-tinted p-4 text-xs"
+            style={{ fontFamily: "ui-monospace, monospace" }}
+          >
+            {verifyJson}
+          </pre>
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-ink-secondary">
+            /api/debug/whoami response (immediately after verify)
+          </p>
+          <pre
+            className="overflow-x-auto rounded-2xl bg-tinted p-4 text-xs"
+            style={{ fontFamily: "ui-monospace, monospace" }}
+          >
+            {whoamiJson}
+          </pre>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => window.location.replace(phase.next)}
+            className="btn-primary"
+          >
+            Continue to {phase.next}
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              const w = await fetchWhoami();
+              setPhase({
+                ...phase,
+                diag: { ...phase.diag, whoamiResponse: w },
+              });
+            }}
+            className="btn-secondary"
+          >
+            Re-check whoami
+          </button>
+        </div>
       </section>
     );
   }
