@@ -14,8 +14,12 @@ test("landing page renders the founding promise", async ({ page }) => {
     name: "Raise the kind of adult you actually want to raise.",
   });
   await expect(heading).toBeVisible();
-  // The primary CTA must be present and link to signup.
-  const cta = page.getByRole("link", { name: /Start with your family/i });
+  // The primary CTA must be present and link to signup. The landing page
+  // renders the same CTA in multiple sections (hero + repeated bands), so
+  // we take the first.
+  const cta = page
+    .getByRole("link", { name: /Start with your family/i })
+    .first();
   await expect(cta).toBeVisible();
   await expect(cta).toHaveAttribute("href", "/auth/signup");
 });
