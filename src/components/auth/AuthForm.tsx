@@ -42,20 +42,6 @@ async function verifyCodeOnServer(email: string, code: string) {
   }
 }
 
-async function fetchWhoami(): Promise<unknown> {
-  try {
-    const r = await fetch("/api/debug/whoami", {
-      credentials: "same-origin",
-      cache: "no-store",
-    });
-    return await r.json();
-  } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : "whoami fetch failed",
-    };
-  }
-}
-
 export type AuthMode = "signup" | "signin";
 
 interface AuthFormProps {
@@ -78,16 +64,11 @@ const COPY: Record<AuthMode, { h1: string; description: string }> = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CODE_RE = /^\d{6}$/;
 
-type DiagnosticBlob = {
-  verifyResponse: unknown;
-  whoamiResponse: unknown;
-};
-
 type Phase =
   | { kind: "enter-email" }
   | { kind: "enter-code"; email: string }
   | { kind: "verifying" }
-  | { kind: "success"; next: string; diag: DiagnosticBlob };
+  | { kind: "success" };
 
 export function AuthForm({ mode }: AuthFormProps) {
   const copy = COPY[mode];
@@ -158,26 +139,15 @@ export function AuthForm({ mode }: AuthFormProps) {
     setPhase({ kind: "verifying" });
     try {
       const result = await verifyCodeOnServer(phase.email, trimmed);
-      // Always log to console so the user can paste it back even if
-      // the network response body was lost.
-      console.log("[AuthForm] verify response:", result);
       if (!result.ok) {
         setPhase({ kind: "enter-code", email: phase.email });
         setError(result.error);
         return;
       }
-      // DIAGNOSTIC PATH (2026-06-22): cookies aren't landing despite
-      // multiple architecture changes. Don't auto-nav — fetch whoami
-      // IMMEDIATELY after verify and show both responses in the UI so
-      // we can see whether the session persists across this single fetch
-      // round-trip. The user copies the JSON back.
-      const whoami = await fetchWhoami();
-      console.log("[AuthForm] whoami response:", whoami);
-      setPhase({
-        kind: "success",
-        next: result.next,
-        diag: { verifyResponse: result, whoamiResponse: whoami },
-      });
+      setPhase({ kind: "success" });
+      // Hard nav — the destination page makes a clean request with the
+      // freshly-set session cookies.
+      window.location.replace(result.next);
     } catch (e) {
       setPhase({ kind: "enter-code", email: phase.email });
       setError(e instanceof Error ? e.message : "Verification failed.");
@@ -193,72 +163,25 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   if (phase.kind === "success") {
-    const verifyJson = JSON.stringify(phase.diag.verifyResponse, null, 2);
-    const whoamiJson = JSON.stringify(phase.diag.whoamiResponse, null, 2);
     return (
       <section
         aria-live="polite"
-        className="mx-auto flex w-full max-w-2xl flex-col gap-4"
+        className="mx-auto flex w-full max-w-md flex-col items-center gap-4 text-center"
       >
-        <div className="flex items-center gap-3 text-center">
-          <div
-            className="flex size-12 items-center justify-center rounded-2xl text-xl text-white shadow-md"
-            style={{ backgroundColor: "var(--success)" }}
-            aria-hidden
-          >
-            ✓
-          </div>
-          <p
-            className="font-display text-xl"
-            style={{ fontFamily: "var(--font-fraunces)" }}
-          >
-            Verify call returned. Cookie diagnostic below.
-          </p>
+        <div
+          className="flex size-14 items-center justify-center rounded-2xl text-2xl text-white shadow-md"
+          style={{ backgroundColor: "var(--success)" }}
+          aria-hidden
+        >
+          ✓
         </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-ink-secondary">
-            /api/auth/verify response
-          </p>
-          <pre
-            className="overflow-x-auto rounded-2xl bg-tinted p-4 text-xs"
-            style={{ fontFamily: "ui-monospace, monospace" }}
-          >
-            {verifyJson}
-          </pre>
-        </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-ink-secondary">
-            /api/debug/whoami response (immediately after verify)
-          </p>
-          <pre
-            className="overflow-x-auto rounded-2xl bg-tinted p-4 text-xs"
-            style={{ fontFamily: "ui-monospace, monospace" }}
-          >
-            {whoamiJson}
-          </pre>
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => window.location.replace(phase.next)}
-            className="btn-primary"
-          >
-            Continue to {phase.next}
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              const w = await fetchWhoami();
-              setPhase({
-                ...phase,
-                diag: { ...phase.diag, whoamiResponse: w },
-              });
-            }}
-            className="btn-secondary"
-          >
-            Re-check whoami
-          </button>
-        </div>
+        <h2
+          className="font-display text-2xl"
+          style={{ fontFamily: "var(--font-fraunces)" }}
+        >
+          You&apos;re in.
+        </h2>
+        <p className="text-base text-ink-secondary">Loading your family…</p>
       </section>
     );
   }

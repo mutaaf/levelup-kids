@@ -1,95 +1,20 @@
-import { cookies as nextCookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  createServerSupabase,
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
-import { SignOutButton } from "@/components/auth/SignOutButton";
 import { scoreByPillar } from "@/lib/growth/score";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  // getSessionUser reads the cookie WITHOUT triggering a refresh.
-  let user = await getSessionUser();
-  let getUserFallbackUsed = false;
-  let getUserErr: string | null = null;
-
-  // If getSession returned null, try getUser as a fallback — sometimes
-  // getSession is more strict than getUser about reading the cookie.
-  if (!user) {
-    const supabase = await createServerSupabase();
-    const r = await supabase.auth.getUser();
-    if (r.data.user) {
-      user = r.data.user;
-      getUserFallbackUsed = true;
-    } else {
-      getUserErr = r.error?.message ?? null;
-    }
-  }
-
-  // DIAGNOSTIC: if STILL no user but cookies are present, render the
-  // diagnostic page instead of Landing.
-  if (!user) {
-    const store = await nextCookies();
-    const sbCookies = store
-      .getAll()
-      .map((c) => c.name)
-      .filter((n) => n.startsWith("sb-"));
-    if (sbCookies.length > 0) {
-      console.warn(
-        `[/] no user but sb cookies present (${sbCookies.join(",")}) — getSession null + getUser err=${getUserErr ?? "none"}`,
-      );
-      return (
-        <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-6 px-6 py-12">
-          <h1
-            className="font-display text-3xl"
-            style={{ fontFamily: "var(--font-fraunces)" }}
-          >
-            Session read failed on this page
-          </h1>
-          <p className="text-ink-secondary">
-            Your sign-in cookies are present but the server couldn&apos;t
-            validate them on this request.
-          </p>
-          <div className="rounded-2xl bg-tinted p-5 font-mono text-xs">
-            <p>
-              <strong>sb cookies present:</strong>
-            </p>
-            <pre className="mt-2 whitespace-pre-wrap break-all">
-              {sbCookies.join("\n")}
-            </pre>
-            <p className="mt-3">
-              <strong>getSession returned:</strong> null
-            </p>
-            <p className="mt-1">
-              <strong>getUser error:</strong> {getUserErr ?? "(none)"}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/api/debug/whoami" className="btn-primary">
-              Open whoami JSON
-            </a>
-            <SignOutButton className="btn-secondary">
-              Sign out + start over
-            </SignOutButton>
-          </div>
-        </main>
-      );
-    }
-    return <Landing />;
-  }
-
-  // If we got here via the getUser fallback, log it so we can see in Vercel
-  // logs how often getSession is failing where getUser succeeds.
-  if (getUserFallbackUsed) {
-    console.warn(`[/] getSession null but getUser succeeded for ${user.id}`);
-  }
+  // getSessionUser reads cookies without triggering a refresh — server
+  // components can't write rotated cookies. Middleware does the refresh.
+  const user = await getSessionUser();
+  if (!user) return <Landing />;
 
   const svc = createServiceSupabase();
   const { data: parent } = await svc

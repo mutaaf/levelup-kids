@@ -7,11 +7,15 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-// `claude-3-5-haiku-20241022` is the smallest, fastest, longest-GA Anthropic
-// model. Use it for the ping so we never trip a "model not available" 404
-// against a key on a restricted plan. Coach calls still pick their own model
-// (Sonnet 4.6 by default) via src/lib/ai/client.ts.
-const PING_MODEL = "claude-3-5-haiku-20241022";
+// Ping with the SAME model the Coach uses by default. If the key can hit
+// this model, the Coach will work. If not, falling back to an older model
+// just gives a false-positive on save. (User reported 2026-06-22 their key
+// returned "model not recognized" for the old haiku 3.5 ping.)
+const PING_MODEL = "claude-sonnet-4-6";
+const PING_FALLBACK_MODELS = [
+  "claude-haiku-4-5-20251001",
+  "claude-3-5-haiku-latest",
+];
 const KEY_RE = /^sk-ant-[A-Za-z0-9_-]{20,}$/;
 const TIMEOUT_MS = 20_000;
 
@@ -81,82 +85,107 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    // Try the primary ping model first; on 404 / model-not-found, fall
+    // through the fallback list. Any successful ping is a sufficient
+    // "key works on this account" signal.
+    const modelsToTry = [PING_MODEL, ...PING_FALLBACK_MODELS];
+    let lastUpstreamError = `Anthropic ${PING_MODEL} unreachable`;
+    let lastStatus = 0;
 
-    let r: Response;
-    try {
-      r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: PING_MODEL,
-          max_tokens: 16,
-          messages: [{ role: "user", content: "ping" }],
-        }),
-        signal: controller.signal,
-      });
-    } catch (e) {
+    for (const model of modelsToTry) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      let r: Response;
+      try {
+        r = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 16,
+            messages: [{ role: "user", content: "ping" }],
+          }),
+          signal: controller.signal,
+        });
+      } catch (e) {
+        clearTimeout(timer);
+        if (e instanceof Error && e.name === "AbortError") {
+          return NextResponse.json<Result>({
+            ok: false,
+            error: "Anthropic didn't respond within 20 seconds. Try again.",
+          });
+        }
+        const msg = e instanceof Error ? e.message : "Network error.";
+        console.error(`[byok.test] network error for ${model}:`, msg);
+        return NextResponse.json<Result>({ ok: false, error: msg });
+      }
       clearTimeout(timer);
-      if (e instanceof Error && e.name === "AbortError") {
+
+      const bodyText = await r.text();
+      if (r.ok) {
+        // Ping succeeded — key works.
+        return NextResponse.json<Result>({ ok: true });
+      }
+
+      let upstream = `Anthropic ${r.status}`;
+      try {
+        const j = JSON.parse(bodyText) as {
+          error?: { type?: string; message?: string };
+        };
+        if (j?.error?.message) upstream = j.error.message;
+      } catch {
+        // not JSON — keep generic message
+      }
+      lastUpstreamError = upstream;
+      lastStatus = r.status;
+
+      // Fast-fail for unambiguous key/account errors — no point retrying
+      // other models.
+      if (r.status === 401) {
         return NextResponse.json<Result>({
           ok: false,
-          error: "Anthropic didn't respond within 20 seconds. Try again.",
+          error: "Anthropic rejected the key. Check you copied it correctly.",
         });
       }
-      const msg = e instanceof Error ? e.message : "Network error.";
-      console.error("[byok.test] network error:", msg);
-      return NextResponse.json<Result>({ ok: false, error: msg });
+      if (r.status === 429) {
+        return NextResponse.json<Result>({
+          ok: false,
+          error: "Rate-limited by Anthropic. Wait a few seconds and retry.",
+        });
+      }
+      if (/credit|billing|insufficient/i.test(upstream)) {
+        return NextResponse.json<Result>({
+          ok: false,
+          error:
+            "Key is valid but the account has no credit. Add billing on console.anthropic.com.",
+        });
+      }
+      // 404 / model-not-found / not_found_error — try the next model.
+      if (
+        r.status === 404 ||
+        /not.found|model.not.found|model_not_found/i.test(upstream)
+      ) {
+        console.warn(
+          `[byok.test] ${model} unavailable on this account, trying next…`,
+        );
+        continue;
+      }
+      // Other error — surface and stop.
+      return NextResponse.json<Result>({
+        ok: false,
+        error: `${upstream} (HTTP ${r.status})`,
+      });
     }
-    clearTimeout(timer);
 
-    const bodyText = await r.text();
-    if (r.ok) {
-      return NextResponse.json<Result>({ ok: true });
-    }
-
-    let upstream = `Anthropic ${r.status}`;
-    try {
-      const j = JSON.parse(bodyText) as {
-        error?: { type?: string; message?: string };
-      };
-      if (j?.error?.message) upstream = j.error.message;
-    } catch {
-      // bodyText wasn't JSON — keep generic status code message
-    }
-
-    if (r.status === 401) {
-      return NextResponse.json<Result>({
-        ok: false,
-        error: "Anthropic rejected the key. Check you copied it correctly.",
-      });
-    }
-    if (r.status === 429) {
-      return NextResponse.json<Result>({
-        ok: false,
-        error: "Rate-limited by Anthropic. Wait a few seconds and retry.",
-      });
-    }
-    if (/credit|billing|insufficient/i.test(upstream)) {
-      return NextResponse.json<Result>({
-        ok: false,
-        error:
-          "Key is valid but the account has no credit. Add billing on console.anthropic.com.",
-      });
-    }
-    if (r.status === 404 || /model/i.test(upstream)) {
-      return NextResponse.json<Result>({
-        ok: false,
-        error: `Anthropic doesn't recognize the ping model (${PING_MODEL}). Save the key anyway — most Coach operations will still work.`,
-      });
-    }
+    // All fallbacks exhausted with model-not-found errors.
     return NextResponse.json<Result>({
       ok: false,
-      error: `${upstream} (HTTP ${r.status})`,
+      error: `None of the Claude models we tried are available on this key (last error: ${lastUpstreamError}, HTTP ${lastStatus}). Save the key anyway — the Coach uses ${PING_MODEL} and will fail with a clearer error if it's not enabled. You may need to enable model access at console.anthropic.com.`,
     });
   } catch (e) {
     console.error("[byok.test] unhandled:", e);

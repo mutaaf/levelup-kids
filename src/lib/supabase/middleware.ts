@@ -32,8 +32,6 @@ export function isPublicPath(pathname: string): boolean {
   if (normalized === "/api/auth/ensure-parents") return true;
   // OTP verify is the sign-in entry point itself; it sets the session.
   if (normalized === "/api/auth/verify") return true;
-  // Test-cookie diagnostic — no auth required.
-  if (normalized === "/api/debug/set-test-cookie") return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 
