@@ -5,7 +5,7 @@ import {
 } from "@/lib/supabase/server";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
-import { scoreByPillar } from "@/lib/growth/score";
+import { familyScoreByPillar, type ChildScoreInput } from "@/lib/growth/score";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ export default async function Home() {
 
   const { data: children } = await svc
     .from("children")
-    .select("id, name, age, avatar")
+    .select("id, name, age, avatar, focus_pillars")
     .eq("household_id", parent.household_id)
     .order("age", { ascending: true });
 
@@ -164,27 +164,60 @@ export default async function Home() {
     };
   });
 
-  // Family Growth Score per pillar (28-day window).
-  const approvedForScore = (allCompletions ?? [])
-    .filter((c) => c.approved_at)
-    .map((c) => {
-      const q = c.quests as unknown as { pillar: PillarSlug } | null;
-      return {
-        pillar: (q?.pillar ?? "scholar") as PillarSlug,
-        approvedAt: c.approved_at as string,
-      };
+  // Per-child focus pillars (default to household if a kid hasn't set
+  // their own yet — backfill migration handles existing rows).
+  const childFocusByChild = new Map<string, PillarSlug[]>();
+  for (const c of children) {
+    const arr = (c.focus_pillars as string[] | null) ?? [];
+    childFocusByChild.set(
+      c.id as string,
+      (arr.length > 0 ? arr : (focusPillars as string[])) as PillarSlug[],
+    );
+  }
+
+  // Family Growth Score per pillar (28-day window): score each kid against
+  // their own focus pillars, then average per pillar across kids who have
+  // that pillar. Per-child is now the load-bearing model.
+  const completionsByChild = new Map<
+    string,
+    Array<{ pillar: PillarSlug; approvedAt: string }>
+  >();
+  for (const c of children) completionsByChild.set(c.id as string, []);
+  for (const comp of allCompletions ?? []) {
+    if (!comp.approved_at) continue;
+    const arr = completionsByChild.get(comp.child_id as string);
+    if (!arr) continue;
+    const q = comp.quests as unknown as { pillar: PillarSlug } | null;
+    arr.push({
+      pillar: (q?.pillar ?? "scholar") as PillarSlug,
+      approvedAt: comp.approved_at as string,
     });
-  const growthScores = scoreByPillar({
-    focusPillars: focusPillars as PillarSlug[],
-    childrenCount: children.length,
-    completions: approvedForScore,
-  });
+  }
+  const childScoreInputs: ChildScoreInput[] = children.map((c) => ({
+    childId: c.id as string,
+    focusPillars: childFocusByChild.get(c.id as string) ?? [],
+    completions: completionsByChild.get(c.id as string) ?? [],
+  }));
+  const growthScores = familyScoreByPillar({ children: childScoreInputs });
+
+  // Union of every kid's pillars — what the household as a whole is
+  // focusing on this month. Surfaces as the chips under the H1.
+  const householdFocusUnion: PillarSlug[] = [];
+  const seen = new Set<PillarSlug>();
+  for (const c of childScoreInputs) {
+    for (const p of c.focusPillars) {
+      if (!seen.has(p)) {
+        seen.add(p);
+        householdFocusUnion.push(p);
+      }
+    }
+  }
 
   return (
     <ParentDashboard
       householdName={household?.name ?? "Your household"}
       parentName={(parent.name as string | null) ?? ""}
-      focusPillars={focusPillars as never}
+      focusPillars={householdFocusUnion}
       kids={childCards}
       pendingApprovals={pendingApprovals}
       growthScores={growthScores}

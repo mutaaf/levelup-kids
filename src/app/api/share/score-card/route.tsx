@@ -308,7 +308,7 @@ export async function GET(request: NextRequest): Promise<Response> {
                 }}
               >
                 <span style={{ fontSize: 18, color: "#475569" }}>
-                  Leading pillar this season
+                  Leading pillar this month
                 </span>
                 <div
                   style={{

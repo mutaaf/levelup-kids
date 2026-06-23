@@ -135,7 +135,7 @@ export function ParentDashboard({
             letterSpacing: "-0.015em",
           }}
         >
-          This season
+          This month
         </h2>
         <div className="flex flex-col items-center gap-6 rounded-3xl bg-card p-6 shadow-md sm:p-8">
           <FamilyGrowthRadar scores={growthScores} />
