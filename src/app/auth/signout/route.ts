@@ -8,16 +8,21 @@ import { NextResponse, type NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Same explicit-cookie-attach pattern as /auth/callback. signOut clears
-// the session cookies via setAll; we then write each one to the outgoing
-// redirect so the browser actually drops them.
+// POST-ONLY. Used to be GET too — that was a silent-signout bug because
+// Next.js <Link href="/auth/signout"> prefetches in production, which
+// fires a GET, which signed the user out without them ever clicking.
+// User reported 2026-06-22: "I see a sign out request when I goto the
+// settings page in the network tab" — exactly this.
+//
+// Trigger from a real form POST (see src/components/auth/SignOutButton.tsx)
+// or a fetch POST. Never a Link or an <a>.
 type PendingCookie = {
   name: string;
   value: string;
   options?: CookieOptions;
 };
 
-async function clearAndRedirect(request: NextRequest): Promise<Response> {
+export async function POST(request: NextRequest): Promise<Response> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
@@ -66,10 +71,18 @@ async function clearAndRedirect(request: NextRequest): Promise<Response> {
   return response;
 }
 
-export async function GET(request: NextRequest): Promise<Response> {
-  return clearAndRedirect(request);
-}
-
-export async function POST(request: NextRequest): Promise<Response> {
-  return clearAndRedirect(request);
+// Surface the bug loudly if anything still tries to GET sign-out (any
+// stray Link prefetch, an old bookmark, a crawler) so the user notices
+// and we can fix the caller instead of silently signing them out.
+export function GET(): Response {
+  return new NextResponse(
+    "Method Not Allowed. Sign out must be POST (use SignOutButton).",
+    {
+      status: 405,
+      headers: {
+        Allow: "POST",
+        "Cache-Control": "no-store, max-age=0",
+      },
+    },
+  );
 }

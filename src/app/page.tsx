@@ -7,6 +7,7 @@ import {
 } from "@/lib/supabase/server";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { scoreByPillar } from "@/lib/growth/score";
 import type { PillarSlug } from "@/lib/types/pillar";
 
@@ -74,10 +75,9 @@ export default async function Home() {
             <a href="/api/debug/whoami" className="btn-primary">
               Open whoami JSON
             </a>
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/auth/signout" className="btn-secondary">
+            <SignOutButton className="btn-secondary">
               Sign out + start over
-            </a>
+            </SignOutButton>
           </div>
         </main>
       );

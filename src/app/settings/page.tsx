@@ -1,6 +1,5 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import {
   createServiceSupabase,
   getSessionUser,
@@ -9,6 +8,7 @@ import { getHouseholdAnthropicKeyMask } from "@/lib/ai/household-key";
 import { listDisplayTokens } from "@/lib/display/tokens";
 import { AnthropicKeyForm } from "./AnthropicKeyForm";
 import { DisplayPairingCard } from "@/components/display/DisplayPairingCard";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 
 export const dynamic = "force-dynamic";
 // Bump the function timeout for the Anthropic ping (default 10s on Vercel
@@ -84,12 +84,9 @@ export default async function SettingsPage() {
               {parent.email as string}
             </span>
           </p>
-          <Link
-            href="/auth/signout"
-            className="mt-3 inline-block text-sm text-brand-600 underline-offset-2 hover:underline"
-          >
+          <SignOutButton className="mt-3 inline-block text-sm text-brand-600 underline-offset-2 hover:underline">
             Sign out
-          </Link>
+          </SignOutButton>
         </div>
       </section>
 
