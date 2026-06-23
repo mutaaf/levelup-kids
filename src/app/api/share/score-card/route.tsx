@@ -5,7 +5,11 @@ import { resolveDisplayToken } from "@/lib/display/tokens";
 import { scoreByPillar } from "@/lib/growth/score";
 import { PILLARS, type PillarSlug } from "@/lib/types/pillar";
 
-export const runtime = "edge";
+// Note: this route uses next/og's ImageResponse, which is happy on either
+// runtime. We use "nodejs" because resolveDisplayToken pulls in
+// src/lib/display/tokens.ts, which imports node:crypto for randomBytes —
+// the edge runtime can't bundle node: built-ins.
+export const runtime = "nodejs";
 
 // 1200×630 — the canonical Open Graph / Twitter share-card aspect ratio.
 const W = 1200;
