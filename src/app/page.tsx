@@ -1,3 +1,4 @@
+import { cookies as nextCookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   createServerSupabase,
@@ -12,11 +13,69 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userResult = await supabase.auth.getUser();
+  const user = userResult.data.user;
 
-  if (!user) return <Landing />;
+  // DIAGNOSTIC (2026-06-22): user is reporting they end up on Landing
+  // after sign-in succeeds. Detect the "cookies present but getUser
+  // failed" case and surface it loudly instead of silently rendering
+  // Landing — that's what's making the bug feel like a session-loss.
+  if (!user) {
+    const store = await nextCookies();
+    const sbCookies = store
+      .getAll()
+      .map((c) => c.name)
+      .filter((n) => n.startsWith("sb-"));
+    if (sbCookies.length > 0) {
+      console.warn(
+        `[/] no user but sb cookies present (${sbCookies.join(",")}) — getUser err=${userResult.error?.message ?? "none"}`,
+      );
+      return (
+        <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-6 px-6 py-12">
+          <h1
+            className="font-display text-3xl"
+            style={{ fontFamily: "var(--font-fraunces)" }}
+          >
+            Session read failed on this page
+          </h1>
+          <p className="text-ink-secondary">
+            Your sign-in cookies are present but the server couldn&apos;t
+            validate them on this request. This is the bug we&apos;ve been
+            chasing.
+          </p>
+          <div className="rounded-2xl bg-tinted p-5 font-mono text-xs">
+            <p>
+              <strong>sb cookies present:</strong>
+            </p>
+            <pre className="mt-2 whitespace-pre-wrap break-all">
+              {sbCookies.join("\n")}
+            </pre>
+            <p className="mt-3">
+              <strong>getUser error:</strong>{" "}
+              {userResult.error?.message ?? "(none)"}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <a
+              href="/api/debug/whoami"
+              className="btn-primary"
+              // eslint-disable-next-line @next/next/no-html-link-for-pages
+            >
+              Open whoami JSON
+            </a>
+            <a
+              href="/auth/signout"
+              className="btn-secondary"
+              // eslint-disable-next-line @next/next/no-html-link-for-pages
+            >
+              Sign out + start over
+            </a>
+          </div>
+        </main>
+      );
+    }
+    return <Landing />;
+  }
 
   const svc = createServiceSupabase();
   const { data: parent } = await svc
