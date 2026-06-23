@@ -40,12 +40,14 @@ export default async function CoachPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col px-6 py-10 pb-32">
       <header className="mb-6 flex items-center justify-between">
-        <Link
+        {/* Hard nav — see comment in /settings/page.tsx. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
           href="/"
           className="text-sm text-ink-secondary underline-offset-2 hover:underline"
         >
           ← Back to family
-        </Link>
+        </a>
         <span className="text-xs tracking-widest text-ink-secondary uppercase">
           Family Coach
         </span>

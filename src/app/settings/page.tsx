@@ -45,12 +45,17 @@ export default async function SettingsPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col px-6 py-10 pb-32">
       <header className="mb-8 flex items-center justify-between">
-        <Link
+        {/* Plain <a> so the browser does a hard nav and the home page server
+            component reads the freshest cookies on a clean request. Soft nav
+            via Next/Link was losing the session somewhere in the
+            router-cache/prefetch path. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
           href="/"
           className="text-sm text-ink-secondary underline-offset-2 hover:underline"
         >
           ← Back to family
-        </Link>
+        </a>
         <span className="text-xs tracking-widest text-ink-secondary uppercase">
           Settings
         </span>

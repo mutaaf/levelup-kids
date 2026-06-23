@@ -30,6 +30,8 @@ export function isPublicPath(pathname: string): boolean {
   // the route handler verify the session itself rather than middleware
   // bouncing it before it can even read cookies().
   if (normalized === "/api/auth/ensure-parents") return true;
+  // OTP verify is the sign-in entry point itself; it sets the session.
+  if (normalized === "/api/auth/verify") return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 

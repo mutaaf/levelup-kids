@@ -96,13 +96,15 @@ export default async function ChildDashboardPage({ params }: ChildDashProps) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-screen-md flex-col gap-8 px-5 py-6 pb-32 sm:px-8 sm:py-10">
       <header>
-        <Link
+        {/* Hard nav — see comment in /settings/page.tsx. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
           href="/"
           className="inline-flex items-center gap-1.5 rounded-full bg-card px-4 py-2 text-sm font-medium text-ink-secondary shadow-sm transition-colors hover:bg-tinted"
         >
           <span aria-hidden>←</span>
           Back to family
-        </Link>
+        </a>
       </header>
 
       <section

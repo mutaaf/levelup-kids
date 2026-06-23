@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
-async function ensureParentsViaApi(
+/** POST /api/auth/verify on the server — server runs verifyOtp + sets
+ *  cookies + ensures parents row + returns {next}. No client-side cookie
+ *  writes anywhere. */
+async function verifyCodeOnServer(
   email: string,
+  code: string,
 ): Promise<{ ok: true; next: string } | { ok: false; error: string }> {
   try {
-    const r = await fetch("/api/auth/ensure-parents", {
+    const r = await fetch("/api/auth/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-      // Must run AFTER verifyOtp wrote the session cookies to document.cookie.
+      body: JSON.stringify({ email, code }),
       credentials: "same-origin",
       cache: "no-store",
     });
@@ -133,35 +136,20 @@ export function AuthForm({ mode }: AuthFormProps) {
     setSubmitting(true);
     setPhase({ kind: "verifying" });
     try {
-      const supabase = createBrowserSupabase();
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: phase.email,
-        token: trimmed,
-        type: "email",
-      });
-      if (error || !data?.user) {
+      // SERVER-SIDE verifyOtp. Server runs the verification, sets cookies
+      // via proper HttpOnly+Secure Set-Cookie headers (the format
+      // @supabase/ssr's server reader expects on subsequent requests),
+      // upserts the parents row, and tells us where to go next.
+      const result = await verifyCodeOnServer(phase.email, trimmed);
+      if (!result.ok) {
         setPhase({ kind: "enter-code", email: phase.email });
-        setError(
-          /token.*expired|invalid|otp_expired/i.test(error?.message ?? "")
-            ? "That code didn't work. Get a fresh one and try again."
-            : (error?.message ?? "Verification failed. Try again."),
-        );
-        return;
-      }
-      // Browser supabase-js has now set the session cookies via document.cookie.
-      // Tell the server to read them + ensure the parents row, then HARD-NAV
-      // to wherever it tells us. Hard nav (window.location.replace) is the
-      // only way to guarantee the server side reads the freshest cookies.
-      const ensure = await ensureParentsViaApi(
-        data.user.email ?? phase.email,
-      );
-      if (!ensure.ok) {
-        setPhase({ kind: "enter-code", email: phase.email });
-        setError(ensure.error);
+        setError(result.error);
         return;
       }
       setPhase({ kind: "success" });
-      window.location.replace(ensure.next);
+      // Hard nav so the destination page makes a clean request with the
+      // freshly-set cookies, no React/router cache anywhere in the path.
+      window.location.replace(result.next);
     } catch (e) {
       setPhase({ kind: "enter-code", email: phase.email });
       setError(e instanceof Error ? e.message : "Verification failed.");
