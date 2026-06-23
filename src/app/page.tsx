@@ -74,9 +74,17 @@ export default async function Home() {
     .order("completed_at", { ascending: true });
 
   // Compute per-child totals.
-  const totals = new Map<string, { xp: number; doneToday: number; total: number }>();
+  const totals = new Map<
+    string,
+    { xp: number; doneToday: number; total: number; days: Set<string> }
+  >();
   for (const c of children) {
-    totals.set(c.id as string, { xp: 0, doneToday: 0, total: 0 });
+    totals.set(c.id as string, {
+      xp: 0,
+      doneToday: 0,
+      total: 0,
+      days: new Set<string>(),
+    });
   }
   for (const q of todaysQuests ?? []) {
     const t = totals.get(q.child_id as string);
@@ -86,8 +94,10 @@ export default async function Home() {
   for (const comp of allCompletions ?? []) {
     if (comp.approved_at) {
       const t = totals.get(comp.child_id as string);
-      if (t) t.xp += (comp.xp_awarded as number | null) ?? 0;
-      // Track which quest ids were approved (for today-counter).
+      if (t) {
+        t.xp += (comp.xp_awarded as number | null) ?? 0;
+        t.days.add((comp.approved_at as string).slice(0, 10));
+      }
       approvedTodayQuestIds.add(comp.quest_id as string);
     }
   }
@@ -96,6 +106,30 @@ export default async function Home() {
       const t = totals.get(q.child_id as string);
       if (t) t.doneToday += 1;
     }
+  }
+
+  // Streak per child = consecutive days backward from today with ≥1 approval.
+  function streakFor(days: Set<string>): number {
+    let streak = 0;
+    for (let i = 0; i < 60; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      if (days.has(key)) streak += 1;
+      else if (i > 0) break;
+    }
+    return streak;
+  }
+
+  // Badge counts per child.
+  const { data: badgesByChild } = await svc
+    .from("child_achievements")
+    .select("child_id")
+    .in("child_id", childIds);
+  const badgeCountByChild = new Map<string, number>();
+  for (const row of badgesByChild ?? []) {
+    const id = row.child_id as string;
+    badgeCountByChild.set(id, (badgeCountByChild.get(id) ?? 0) + 1);
   }
 
   const childCards = children.map((c) => {
@@ -107,6 +141,8 @@ export default async function Home() {
       totalXp: t.xp,
       todayDone: t.doneToday,
       todayTotal: t.total,
+      streakDays: streakFor(t.days),
+      badgeCount: badgeCountByChild.get(c.id as string) ?? 0,
     };
   });
 

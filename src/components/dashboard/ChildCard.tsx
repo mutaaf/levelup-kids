@@ -8,6 +8,8 @@ export type ChildCardProps = {
   totalXp: number;
   todayDone: number;
   todayTotal: number;
+  streakDays?: number;
+  badgeCount?: number;
 };
 
 export function ChildCard({
@@ -17,6 +19,8 @@ export function ChildCard({
   totalXp,
   todayDone,
   todayTotal,
+  streakDays = 0,
+  badgeCount = 0,
 }: ChildCardProps) {
   const lvl = level(totalXp);
   const xpInLevel = totalXp % 100;
@@ -76,6 +80,33 @@ export function ChildCard({
                 ? `🎉 ${todayDone} for ${todayDone} today`
                 : `${todayDone} of ${todayTotal} today`}
           </p>
+          {(streakDays >= 3 || badgeCount > 0) && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {streakDays >= 3 && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold"
+                  style={{
+                    color: "var(--warning)",
+                    backgroundColor:
+                      "color-mix(in srgb, var(--warning) 15%, transparent)",
+                  }}
+                  aria-label={`${streakDays}-day streak`}
+                >
+                  <span aria-hidden>🔥</span>
+                  {streakDays}d
+                </span>
+              )}
+              {badgeCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-bold text-brand-600"
+                  aria-label={`${badgeCount} badge${badgeCount === 1 ? "" : "s"} earned`}
+                >
+                  <span aria-hidden>🏅</span>
+                  {badgeCount}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <span
           aria-hidden

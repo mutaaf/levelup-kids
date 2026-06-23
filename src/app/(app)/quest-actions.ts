@@ -5,6 +5,7 @@ import {
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
+import { evaluateAndAwardBadges } from "@/lib/achievements/award";
 
 export type QuestActionResult =
   | { ok: true }
@@ -106,6 +107,16 @@ export async function approveQuest(
     })
     .eq("id", completionId);
   if (error) return { ok: false, error: error.message };
+
+  // Evaluate badges off the new approval. Don't block on errors — a badge
+  // failure shouldn't break the approval flow.
+  try {
+    await evaluateAndAwardBadges({ childId: quest.child_id });
+  } catch (e) {
+    console.warn(
+      `[approveQuest] badge eval failed: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
 
   revalidatePath("/");
   revalidatePath(`/kids/${quest.child_id}`);

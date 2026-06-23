@@ -17,6 +17,8 @@ export type ParentDashboardProps = {
     totalXp: number;
     todayDone: number;
     todayTotal: number;
+    streakDays?: number;
+    badgeCount?: number;
   }>;
   pendingApprovals: PendingApproval[];
 };

@@ -9,6 +9,11 @@ import { listDisplayTokens } from "@/lib/display/tokens";
 import { AnthropicKeyForm } from "./AnthropicKeyForm";
 import { DisplayPairingCard } from "@/components/display/DisplayPairingCard";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import {
+  CustomQuestsCard,
+  type CustomQuestRow,
+} from "@/components/quests/CustomQuestsCard";
+import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
 // Bump the function timeout for the Anthropic ping (default 10s on Vercel
@@ -33,6 +38,13 @@ export default async function SettingsPage() {
   const mask = await getHouseholdAnthropicKeyMask(parent.household_id as string);
   const hasEnvKey = !!process.env.ANTHROPIC_API_KEY;
   const displays = await listDisplayTokens(parent.household_id as string);
+
+  const { data: customQuestRows } = await svc
+    .from("household_quests")
+    .select("id, title, description, pillar, age_min, age_max, xp_reward")
+    .eq("household_id", parent.household_id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
 
   // Build the base URL from request headers so the Settings UI shows the
   // exact origin a parent's browser is on (works on localhost + Vercel).
@@ -88,6 +100,31 @@ export default async function SettingsPage() {
             Sign out
           </SignOutButton>
         </div>
+      </section>
+
+      <section className="mt-10 flex flex-col gap-3">
+        <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
+          Custom quests
+        </h2>
+        <p className="text-sm text-ink-secondary">
+          Add quests specific to your family on top of the built-in library —
+          chores that matter, traditions, skills you&apos;re working on this
+          season. They mix in with the seeded quests based on each kid&apos;s
+          age and the pillars you&apos;ve picked.
+        </p>
+        <CustomQuestsCard
+          quests={(customQuestRows ?? []).map(
+            (r): CustomQuestRow => ({
+              id: r.id as string,
+              title: r.title as string,
+              description: (r.description as string | null) ?? "",
+              pillar: r.pillar as PillarSlug,
+              age_min: (r.age_min as number | null) ?? 4,
+              age_max: (r.age_max as number | null) ?? 17,
+              xp_reward: (r.xp_reward as number | null) ?? 5,
+            }),
+          )}
+        />
       </section>
 
       <section className="mt-10 flex flex-col gap-3">

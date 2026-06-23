@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import {
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
 import { level } from "@/lib/growth/level";
 import { QuestCard } from "@/components/quests/QuestCard";
+import { BadgeStrip } from "@/components/achievements/BadgeStrip";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +83,17 @@ export default async function ChildDashboardPage({ params }: ChildDashProps) {
 
   const lvl = level(totalXp);
   const xpInLevel = totalXp % 100;
+
+  // Earned badges for this child.
+  const { data: earnedRows } = await svc
+    .from("child_achievements")
+    .select("badge_id, earned_at")
+    .eq("child_id", childId)
+    .order("earned_at", { ascending: false });
+  const earnedBadges = (earnedRows ?? []).map((r) => ({
+    badgeId: r.badge_id as string,
+    earnedAt: r.earned_at as string,
+  }));
 
   const todayDone = (quests ?? []).filter((q) =>
     compByQuest.get(q.id as string)?.approved,
@@ -186,6 +197,20 @@ export default async function ChildDashboardPage({ params }: ChildDashProps) {
             />
           </div>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "1.5rem",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Badges
+        </h2>
+        <BadgeStrip earned={earnedBadges} />
       </section>
 
       <section className="flex flex-col gap-4">
