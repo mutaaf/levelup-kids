@@ -1,18 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  carryCookies,
-  createRouteHandlerSupabase,
-} from "@/lib/supabase/route-handler";
-import { createServiceSupabase } from "@/lib/supabase/server";
+  createServerSupabase,
+  createServiceSupabase,
+} from "@/lib/supabase/server";
 import { handleAuthCallback } from "./handler";
 
 // GET /auth/callback?code=… — landing target for the magic-link email.
 //
-// CRITICAL: cookies set by supabase.auth.exchangeCodeForSession MUST live on
-// the outgoing response, not the cookies() store. See
-// src/lib/supabase/route-handler.ts for the why.
+// Uses the canonical Supabase Next 15 pattern with cookies() from
+// next/headers. The carrier-response trick I tried in a prior fix turned
+// out to drop cookie options when round-tripping through
+// NextResponse.cookies.getAll() — reverted here.
+//
+// cookies().set() in a Route Handler DOES propagate to the outgoing
+// response, even when that response is a fresh NextResponse.redirect().
+// Verified against the official Supabase quickstart.
 export async function GET(request: NextRequest): Promise<Response> {
-  const { supabase, carrier } = createRouteHandlerSupabase(request);
+  const supabase = await createServerSupabase();
   const svc = createServiceSupabase();
 
   const result = await handleAuthCallback({
@@ -20,8 +24,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     async exchangeCode(code) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error || !data?.user) {
+        console.warn(
+          `[auth.callback] exchangeCode failed: ${error?.message ?? "no user"}`,
+        );
         throw new Error(error?.message ?? "exchange-failed");
       }
+      console.log(
+        `[auth.callback] exchanged code for ${data.user.id} (${data.user.email ?? "no email"})`,
+      );
       return { user: { id: data.user.id, email: data.user.email ?? null } };
     },
     async loadParents(userId) {
@@ -52,5 +62,5 @@ export async function GET(request: NextRequest): Promise<Response> {
   });
 
   const url = new URL(result.location, request.url);
-  return carryCookies(carrier, NextResponse.redirect(url));
+  return NextResponse.redirect(url);
 }

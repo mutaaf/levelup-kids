@@ -1,21 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  carryCookies,
-  createRouteHandlerSupabase,
-} from "@/lib/supabase/route-handler";
+import { createServerSupabase } from "@/lib/supabase/server";
 
-async function clearSessionAndRedirect(
-  request: NextRequest,
-): Promise<Response> {
-  const { supabase, carrier } = createRouteHandlerSupabase(request);
+// Canonical pattern: cookies() store in route handler; the supabase client
+// writes the cleared session cookies via that store; we return a fresh
+// redirect and Next 15 attaches the Set-Cookie headers to it.
+async function clearAndRedirect(request: NextRequest): Promise<Response> {
+  const supabase = await createServerSupabase();
   await supabase.auth.signOut();
-  return carryCookies(carrier, NextResponse.redirect(new URL("/", request.url)));
+  return NextResponse.redirect(new URL("/", request.url));
 }
 
 export async function GET(request: NextRequest): Promise<Response> {
-  return clearSessionAndRedirect(request);
+  return clearAndRedirect(request);
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
-  return clearSessionAndRedirect(request);
+  return clearAndRedirect(request);
 }

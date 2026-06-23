@@ -23,6 +23,9 @@ export function isPublicPath(pathname: string): boolean {
       ? pathname.slice(0, -1)
       : pathname;
   if (normalized.startsWith("/display/")) return true;
+  // Diagnostic endpoint must reach the SDK even when the session is
+  // invalid — so we can report exactly what the server sees.
+  if (normalized === "/api/debug/whoami") return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 
