@@ -110,8 +110,22 @@ export async function updateSession(
   // the JWT, which is what we want for any gating decision. The Supabase
   // SDK explicitly notes that getUser MUST be called between createClient
   // and returning the response, or refresh tokens silently invalidate.
-  const { data } = await supabase.auth.getUser();
-  const isAuthenticated = !!data.user;
+  const userResult = await supabase.auth.getUser();
+  const isAuthenticated = !!userResult.data.user;
+
+  // Diagnostic logging — visible in Vercel runtime logs. Helps trace
+  // mysterious "I keep getting logged out" reports.
+  if (process.env.VERCEL && !isAuthenticated) {
+    const sbCookies = request.cookies
+      .getAll()
+      .map((c) => c.name)
+      .filter((n) => n.startsWith("sb-"));
+    if (sbCookies.length > 0) {
+      console.warn(
+        `[mw] sb cookies present but getUser failed on ${request.nextUrl.pathname} — err=${userResult.error?.message ?? "none"} cookies=${sbCookies.join(",")}`,
+      );
+    }
+  }
 
   const decision = redirectForPath({
     pathname: request.nextUrl.pathname,
@@ -120,6 +134,21 @@ export async function updateSession(
   });
 
   if (decision.kind === "redirect") {
+    // For /api/* requests: return JSON 401 instead of a 307 to /auth/signin.
+    // A 307 with POST gets followed by fetch as POST to /auth/signin, which
+    // has no POST handler and returns 405 — caller sees a baffling
+    // "HTTP 405" or "An unexpected response was received from the server".
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      const json = NextResponse.json(
+        { ok: false, error: "Not signed in. Refresh the page and sign in again." },
+        { status: 401 },
+      );
+      for (const cookie of state.response.cookies.getAll()) {
+        json.cookies.set(cookie);
+      }
+      return json;
+    }
+
     const url = request.nextUrl.clone();
     const [path = "/", query] = decision.location.split("?");
     url.pathname = path;
