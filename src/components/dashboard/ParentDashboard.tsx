@@ -4,6 +4,7 @@ import { PILLAR_COPY } from "@/lib/pillars/copy";
 import { ChildCard } from "./ChildCard";
 import { ApprovalQueue, type PendingApproval } from "./ApprovalQueue";
 import { FamilyGrowthRadar } from "@/components/growth/FamilyGrowthRadar";
+import { ShareScoreButton } from "@/components/growth/ShareScoreButton";
 
 export type ParentDashboardProps = {
   householdName: string;
@@ -136,8 +137,9 @@ export function ParentDashboard({
         >
           This season
         </h2>
-        <div className="flex justify-center rounded-3xl bg-card p-6 shadow-md sm:p-8">
+        <div className="flex flex-col items-center gap-6 rounded-3xl bg-card p-6 shadow-md sm:p-8">
           <FamilyGrowthRadar scores={growthScores} />
+          <ShareScoreButton householdName={householdName} />
         </div>
       </section>
 

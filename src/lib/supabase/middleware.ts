@@ -23,6 +23,9 @@ export function isPublicPath(pathname: string): boolean {
       ? pathname.slice(0, -1)
       : pathname;
   if (normalized.startsWith("/display/")) return true;
+  // Co-parent invite landing — the inviter sends a link to someone who
+  // may or may not be signed in yet. The page handles both cases.
+  if (normalized.startsWith("/invite/")) return true;
   // Diagnostic endpoint must reach the SDK even when the session is
   // invalid — so we can report exactly what the server sees.
   if (normalized === "/api/debug/whoami") return true;
@@ -32,6 +35,12 @@ export function isPublicPath(pathname: string): boolean {
   if (normalized === "/api/auth/ensure-parents") return true;
   // OTP verify is the sign-in entry point itself; it sets the session.
   if (normalized === "/api/auth/verify") return true;
+  // Share card uses a display token as its own auth — the URL is meant to
+  // be embedded in OG previews and forwarded; no session required.
+  if (normalized === "/api/share/score-card") return true;
+  // Vercel cron jobs hit this with `Authorization: Bearer $CRON_SECRET`;
+  // the route enforces the secret itself.
+  if (normalized.startsWith("/api/cron/")) return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 

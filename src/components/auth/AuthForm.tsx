@@ -145,9 +145,17 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
       setPhase({ kind: "success" });
-      // Hard nav — the destination page makes a clean request with the
-      // freshly-set session cookies.
-      window.location.replace(result.next);
+      // Honor ?next=… on the sign-up/sign-in URL (e.g. the co-parent
+      // invite flow at /invite/[token] redirects here with
+      // ?next=/invite/[token] and expects to come back). Falls back to
+      // the verify endpoint's default next.
+      const params = new URLSearchParams(window.location.search);
+      const explicitNext = params.get("next");
+      const safeNext =
+        explicitNext && explicitNext.startsWith("/") && !explicitNext.startsWith("//")
+          ? explicitNext
+          : result.next;
+      window.location.replace(safeNext);
     } catch (e) {
       setPhase({ kind: "enter-code", email: phase.email });
       setError(e instanceof Error ? e.message : "Verification failed.");

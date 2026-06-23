@@ -13,6 +13,10 @@ import {
   CustomQuestsCard,
   type CustomQuestRow,
 } from "@/components/quests/CustomQuestsCard";
+import {
+  CoParentInviteCard,
+  type PendingInvite,
+} from "@/components/auth/CoParentInviteCard";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +49,23 @@ export default async function SettingsPage() {
     .eq("household_id", parent.household_id)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
+
+  // Pending co-parent invites (not accepted, not revoked, not expired).
+  const { data: pendingInviteRows } = await svc
+    .from("household_invites")
+    .select("token, email, created_at, expires_at")
+    .eq("household_id", parent.household_id)
+    .is("accepted_at", null)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  // Co-parents already in this household (other than the current user).
+  const { data: coParents } = await svc
+    .from("parents")
+    .select("id, name, email")
+    .eq("household_id", parent.household_id)
+    .neq("id", user.id);
 
   // Build the base URL from request headers so the Settings UI shows the
   // exact origin a parent's browser is on (works on localhost + Vercel).
@@ -100,6 +121,47 @@ export default async function SettingsPage() {
             Sign out
           </SignOutButton>
         </div>
+      </section>
+
+      <section className="mt-10 flex flex-col gap-3">
+        <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
+          Co-parents
+        </h2>
+        {coParents && coParents.length > 0 && (
+          <div className="rounded-2xl bg-card p-5 shadow-sm">
+            <p className="text-xs font-semibold tracking-widest text-ink-muted uppercase">
+              Already in your household
+            </p>
+            <ul className="mt-2 flex flex-col gap-1">
+              {coParents.map((p) => (
+                <li
+                  key={p.id as string}
+                  className="text-base text-ink-primary"
+                >
+                  {(p.name as string | null) || "—"}{" "}
+                  <span className="text-ink-muted">·</span>{" "}
+                  <span className="text-ink-muted">{p.email as string}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <p className="text-sm text-ink-secondary">
+          Invite a co-parent (your spouse, a grandparent, anyone who&apos;ll
+          approve quests). They get the same dashboard and the same approval
+          queue — no second household to manage.
+        </p>
+        <CoParentInviteCard
+          baseUrl={baseUrl}
+          pending={(pendingInviteRows ?? []).map(
+            (r): PendingInvite => ({
+              token: r.token as string,
+              email: (r.email as string | null) ?? null,
+              created_at: r.created_at as string,
+              expires_at: r.expires_at as string,
+            }),
+          )}
+        />
       </section>
 
       <section className="mt-10 flex flex-col gap-3">
