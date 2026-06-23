@@ -294,7 +294,10 @@ describe("supabase/config.toml magic_link template", () => {
         "magic_link template has neither `content` nor `content_path`",
       );
     }
-    expect(body).toMatch(/Tap to sign in\. The link expires in 60 minutes\./);
+    // 2026-06-22: switched from magic link to 6-digit OTP code. Copy now
+    // tells the user to type the code into the open tab.
+    expect(body).toMatch(/Type this 6-digit code into the LevelUp Kids tab/);
+    expect(body).toMatch(/expires in 60 minutes/);
 
     // Voice rules (AGENTS.md non-negotiable #7).
     const banned = [
@@ -325,12 +328,22 @@ describe("supabase/config.toml magic_link template", () => {
 /* ---- "no password field anywhere" grep --------------------------------- */
 
 describe("password-field absence", () => {
-  it("no `type=\"password\"` appears anywhere under src/", () => {
+  // Guard: no `type="password"` on the AUTH surfaces (we ship passwordless
+  // auth — magic-link OTP only). The single legitimate exception is the
+  // BYOK Anthropic-key input in /settings, which masks a user-supplied API
+  // key. Adding any other allowlist entry needs a discussion.
+  const ALLOWED_PASSWORD_INPUTS = new Set<string>([
+    "src/app/settings/AnthropicKeyForm.tsx",
+  ]);
+
+  it("no `type=\"password\"` appears outside the allowlist", () => {
     const hits: string[] = [];
     walk(join(REPO_ROOT, "src"), (file) => {
       if (!/\.(tsx?|jsx?|css|html)$/.test(file)) return;
       const text = readFileSync(file, "utf8");
-      if (/type\s*=\s*"password"/.test(text)) hits.push(file);
+      if (!/type\s*=\s*"password"/.test(text)) return;
+      const rel = file.replace(REPO_ROOT + "/", "");
+      if (!ALLOWED_PASSWORD_INPUTS.has(rel)) hits.push(rel);
     });
     expect(hits, hits.join("\n")).toEqual([]);
   });
