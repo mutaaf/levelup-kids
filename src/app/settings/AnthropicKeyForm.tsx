@@ -1,17 +1,50 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-  clearAnthropicKey,
-  saveAnthropicKey,
-  testAnthropicKey,
-} from "./actions";
 
 type Status =
   | { kind: "idle" }
   | { kind: "info"; text: string }
   | { kind: "ok"; text: string }
   | { kind: "err"; text: string };
+
+type ByokResult = { ok: true } | { ok: false; error: string };
+
+/** Plain fetch to one of /api/byok/{test,save,clear}. No server-action RPC,
+ *  no React-transition error bubbling — just HTTP + JSON. Any network failure
+ *  surfaces as { ok: false, error } and can't crash the page. */
+async function byokFetch(
+  path: "test" | "save" | "clear",
+  body?: { key: string },
+): Promise<ByokResult> {
+  try {
+    const r = await fetch(`/api/byok/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : "{}",
+    });
+    const text = await r.text();
+    if (!text) {
+      return {
+        ok: false,
+        error: `Empty response from /api/byok/${path} (HTTP ${r.status}).`,
+      };
+    }
+    try {
+      const parsed = JSON.parse(text) as ByokResult;
+      return parsed;
+    } catch {
+      return {
+        ok: false,
+        error: `Bad response shape from /api/byok/${path}: ${text.slice(0, 200)}`,
+      };
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network error.";
+    return { ok: false, error: msg };
+  }
+}
 
 export function AnthropicKeyForm({
   currentMask,
@@ -22,6 +55,7 @@ export function AnthropicKeyForm({
   updatedAt: string | null;
   envKeyPresent: boolean;
 }) {
+  const router = useRouter();
   const [key, setKey] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [busy, startTransition] = useTransition();
@@ -31,35 +65,10 @@ export function AnthropicKeyForm({
       timeStyle: "short",
     });
 
-  /**
-   * Run a server action and trap ANY thrown error before it can bubble into
-   * React's transition machinery. Without this wrapper a server-side throw
-   * (network timeout, malformed RPC response, Vercel returning HTML) crashes
-   * the page with "An unexpected response was received from the server".
-   */
-  async function safeCall<T>(
-    fn: () => Promise<T>,
-  ): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
-    try {
-      return { ok: true, value: await fn() };
-    } catch (e) {
-      const msg =
-        e instanceof Error
-          ? e.message || "Server didn't respond as expected."
-          : "Server didn't respond as expected.";
-      return { ok: false, error: msg };
-    }
-  }
-
   function onTest() {
-    setStatus({ kind: "info", text: "Pinging Anthropic..." });
+    setStatus({ kind: "info", text: "Pinging Anthropic…" });
     startTransition(async () => {
-      const wrapped = await safeCall(() => testAnthropicKey(key));
-      if (!wrapped.ok) {
-        setStatus({ kind: "err", text: wrapped.error });
-        return;
-      }
-      const r = wrapped.value;
+      const r = await byokFetch("test", { key });
       setStatus(
         r.ok
           ? { kind: "ok", text: "Key works. Anthropic accepted the ping." }
@@ -69,20 +78,16 @@ export function AnthropicKeyForm({
   }
 
   function onSave() {
-    setStatus({ kind: "info", text: "Saving..." });
+    setStatus({ kind: "info", text: "Saving…" });
     startTransition(async () => {
-      const wrapped = await safeCall(() => saveAnthropicKey(key));
-      if (!wrapped.ok) {
-        setStatus({ kind: "err", text: wrapped.error });
-        return;
-      }
-      const r = wrapped.value;
+      const r = await byokFetch("save", { key });
       if (r.ok) {
         setKey("");
         setStatus({
           kind: "ok",
           text: "Key saved. The Family Coach will use it on the next question.",
         });
+        router.refresh();
       } else {
         setStatus({ kind: "err", text: r.error });
       }
@@ -90,31 +95,22 @@ export function AnthropicKeyForm({
   }
 
   function onTestThenSave() {
-    setStatus({ kind: "info", text: "Pinging Anthropic..." });
+    setStatus({ kind: "info", text: "Pinging Anthropic…" });
     startTransition(async () => {
-      const wrappedT = await safeCall(() => testAnthropicKey(key));
-      if (!wrappedT.ok) {
-        setStatus({ kind: "err", text: wrappedT.error });
-        return;
-      }
-      const t = wrappedT.value;
+      const t = await byokFetch("test", { key });
       if (!t.ok) {
         setStatus({ kind: "err", text: t.error });
         return;
       }
-      setStatus({ kind: "info", text: "Ping good. Saving..." });
-      const wrappedS = await safeCall(() => saveAnthropicKey(key));
-      if (!wrappedS.ok) {
-        setStatus({ kind: "err", text: wrappedS.error });
-        return;
-      }
-      const s = wrappedS.value;
+      setStatus({ kind: "info", text: "Ping good. Saving…" });
+      const s = await byokFetch("save", { key });
       if (s.ok) {
         setKey("");
         setStatus({
           kind: "ok",
           text: "Key tested and saved. The Family Coach is live for your household.",
         });
+        router.refresh();
       } else {
         setStatus({ kind: "err", text: s.error });
       }
@@ -122,22 +118,22 @@ export function AnthropicKeyForm({
   }
 
   function onClear() {
-    if (!confirm("Remove the saved key? The Coach will stop working unless the project has a fallback key set.")) {
+    if (
+      !confirm(
+        "Remove the saved key? The Coach will stop working unless the project has a fallback key set.",
+      )
+    ) {
       return;
     }
-    setStatus({ kind: "info", text: "Clearing..." });
+    setStatus({ kind: "info", text: "Clearing…" });
     startTransition(async () => {
-      const wrapped = await safeCall(() => clearAnthropicKey());
-      if (!wrapped.ok) {
-        setStatus({ kind: "err", text: wrapped.error });
-        return;
+      const r = await byokFetch("clear");
+      if (r.ok) {
+        setStatus({ kind: "ok", text: "Key removed." });
+        router.refresh();
+      } else {
+        setStatus({ kind: "err", text: r.error });
       }
-      const r = wrapped.value;
-      setStatus(
-        r.ok
-          ? { kind: "ok", text: "Key removed." }
-          : { kind: "err", text: r.error },
-      );
     });
   }
 

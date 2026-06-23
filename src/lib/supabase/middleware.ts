@@ -4,14 +4,8 @@ import {
 } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Public-path allowlist for the Supabase-session middleware.
-//
-// AGENTS.md non-negotiable #2 (privacy) lives at the schema layer; this is
-// the URL layer. Any request whose pathname is NOT in this allowlist must
-// be backed by a Supabase session, or it 302s to /auth/signin?next=…
-//
-// Ordering doesn't matter (we match exactly). Keep this set deliberately
-// short — every additional entry is a hole in the wall.
+// Public-path allowlist. Anything else requires a Supabase session, or it
+// 302s to /auth/signin?next=…
 export const PUBLIC_PATHS = [
   "/",
   "/auth/signin",
@@ -23,8 +17,6 @@ export const PUBLIC_PATHS = [
 
 const PUBLIC_PATH_SET: ReadonlySet<string> = new Set(PUBLIC_PATHS);
 
-/** True when `pathname` (with or without a trailing slash) is one of the
- *  documented public routes. /display/* tokens are the auth themselves. */
 export function isPublicPath(pathname: string): boolean {
   const normalized =
     pathname.length > 1 && pathname.endsWith("/")
@@ -38,8 +30,6 @@ export type RedirectDecision =
   | { kind: "pass" }
   | { kind: "redirect"; location: string };
 
-/** Pure decision helper — extracted from the Next middleware so it can be
- *  unit-tested without spinning up a request object. */
 export function redirectForPath(args: {
   pathname: string;
   search?: string;
@@ -52,20 +42,45 @@ export function redirectForPath(args: {
   return { kind: "redirect", location: `/auth/signin?next=${next}` };
 }
 
-/** Builds an `@supabase/ssr` server client bound to the NextRequest's
- *  cookies. Adapted from the Supabase Next.js App Router quickstart. */
-function makeSupabase(
+/**
+ * Refresh the Supabase session on every request, decide whether the path
+ * is allowed, redirect to /auth/signin if not.
+ *
+ * CRITICAL — Supabase canonical Next 15 pattern (corrected 2026-06-22):
+ *
+ * supabase.auth.getUser() may rotate the access + refresh tokens. The new
+ * tokens MUST land in TWO places:
+ *
+ *   1. The OUTGOING response cookies so the browser persists them.
+ *   2. The INCOMING request.cookies so downstream server components in
+ *      THIS request see the refreshed values when they call cookies().
+ *
+ * If step 2 is skipped (what the previous version did), a refresh during
+ * middleware rotates the refresh token but server components still see
+ * the OLD refresh token via cookies(). The next supabase call there
+ * presents an already-used refresh token, Supabase rejects it, and the
+ * user appears logged out. That cascade kills sessions on new tabs and
+ * route navigations.
+ *
+ * The cure: inside setAll we also write to request.cookies AND rebuild
+ * the response with the updated request so the headers carry forward.
+ */
+export async function updateSession(
   request: NextRequest,
-  response: NextResponse,
-): ReturnType<typeof createServerClient> {
+): Promise<NextResponse> {
+  // Mutable container so the cookie setter can swap the response in place
+  // when Supabase rotates a token mid-request.
+  const state = { response: NextResponse.next({ request }) };
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
     throw new Error(
-      "middleware.makeSupabase: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set",
+      "middleware: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set",
     );
   }
-  const cookies: CookieMethodsServer = {
+
+  const cookieMethods: CookieMethodsServer = {
     getAll() {
       return request.cookies.getAll().map((c) => ({
         name: c.name,
@@ -73,30 +88,28 @@ function makeSupabase(
       }));
     },
     setAll(cookiesToSet) {
+      // (1) update the incoming-request cookies so downstream sees them
+      for (const { name, value } of cookiesToSet) {
+        request.cookies.set(name, value);
+      }
+      // (2) rebuild response with the updated request — this is what
+      //     forwards the refreshed cookies into the next handler in the
+      //     same request lifecycle.
+      state.response = NextResponse.next({ request });
+      // (3) write to the outgoing response so the browser persists the
+      //     rotated tokens for the next request.
       for (const { name, value, options } of cookiesToSet) {
-        response.cookies.set({ name, value, ...options });
+        state.response.cookies.set({ name, value, ...options });
       }
     },
   };
-  return createServerClient(url, anonKey, { cookies });
-}
 
-/** The Next.js middleware entrypoint — re-exported from src/middleware.ts.
- *  Returns a NextResponse that either passes through (with possibly-refreshed
- *  cookies) or redirects to /auth/signin?next=<requested>. */
-export async function updateSession(
-  request: NextRequest,
-): Promise<NextResponse> {
-  // Default response: pass through. The Supabase client may attach refreshed
-  // cookies onto this response below.
-  let response = NextResponse.next({ request });
-  const supabase = makeSupabase(request, response);
+  const supabase = createServerClient(url, anonKey, { cookies: cookieMethods });
 
-  // Side effect: refresh the session and detect the authenticated user.
-  // We deliberately use getUser() (not getSession()) because getSession()
-  // returns a cookie-read with no verification, whereas getUser() round-trips
-  // to the GoTrue server and validates the JWT — the right answer for any
-  // gating decision.
+  // Use getUser (not getSession) — it round-trips to GoTrue and validates
+  // the JWT, which is what we want for any gating decision. The Supabase
+  // SDK explicitly notes that getUser MUST be called between createClient
+  // and returning the response, or refresh tokens silently invalidate.
   const { data } = await supabase.auth.getUser();
   const isAuthenticated = !!data.user;
 
@@ -112,12 +125,12 @@ export async function updateSession(
     url.pathname = path;
     url.search = query ? `?${query}` : "";
     const redirect = NextResponse.redirect(url);
-    // Carry forward any cookies the Supabase client set on `response`.
-    for (const cookie of response.cookies.getAll()) {
+    // Carry any cookies that were rotated during getUser onto the redirect.
+    for (const cookie of state.response.cookies.getAll()) {
       redirect.cookies.set(cookie);
     }
-    response = redirect;
+    return redirect;
   }
 
-  return response;
+  return state.response;
 }
