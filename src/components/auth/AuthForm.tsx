@@ -158,6 +158,9 @@ export function AuthForm({ mode }: AuthFormProps) {
     setPhase({ kind: "verifying" });
     try {
       const result = await verifyCodeOnServer(phase.email, trimmed);
+      // Always log to console so the user can paste it back even if
+      // the network response body was lost.
+      console.log("[AuthForm] verify response:", result);
       if (!result.ok) {
         setPhase({ kind: "enter-code", email: phase.email });
         setError(result.error);
@@ -169,6 +172,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       // we can see whether the session persists across this single fetch
       // round-trip. The user copies the JSON back.
       const whoami = await fetchWhoami();
+      console.log("[AuthForm] whoami response:", whoami);
       setPhase({
         kind: "success",
         next: result.next,
