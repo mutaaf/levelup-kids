@@ -162,7 +162,23 @@ export async function POST(request: NextRequest): Promise<Response> {
   // 3. Build the JSON response and ATTACH every collected cookie with
   // its original options. This is the line that makes the session
   // persist into the browser on Vercel.
-  const response = NextResponse.json<Result>({ ok: true, next });
+  //
+  // DIAGNOSTIC: include the cookie names being set + session state so we
+  // can SEE what's happening when sign-in appears to succeed but cookies
+  // don't land. setAll-zero would mean @supabase/ssr's cookie adapter
+  // isn't being called at all on server-side verifyOtp; non-zero would
+  // mean cookies are being collected but the browser isn't applying them.
+  const debug = {
+    pendingCount: pending.length,
+    pendingNames: pending.map((c) => c.name),
+    hasSessionFromVerify: !!verifyData.session,
+    sessionAccessTokenPrefix:
+      verifyData.session?.access_token?.slice(0, 12) ?? null,
+    requestHadCookies: request.cookies.getAll().map((c) => c.name),
+  };
+  console.log(`[auth.verify] response debug:`, debug);
+
+  const response = NextResponse.json({ ok: true as const, next, debug });
   for (const c of pending) {
     response.cookies.set({
       name: c.name,
