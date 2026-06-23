@@ -17,6 +17,10 @@ import {
   CoParentInviteCard,
   type PendingInvite,
 } from "@/components/auth/CoParentInviteCard";
+import {
+  ManageKidsCard,
+  type KidRow,
+} from "@/components/children/ManageKidsCard";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +70,13 @@ export default async function SettingsPage() {
     .select("id, name, email")
     .eq("household_id", parent.household_id)
     .neq("id", user.id);
+
+  // Kids in the household — feeds ManageKidsCard (add/edit/remove).
+  const { data: kidRows } = await svc
+    .from("children")
+    .select("id, name, age, avatar")
+    .eq("household_id", parent.household_id)
+    .order("age", { ascending: true });
 
   // Build the base URL from request headers so the Settings UI shows the
   // exact origin a parent's browser is on (works on localhost + Vercel).
@@ -121,6 +132,28 @@ export default async function SettingsPage() {
             Sign out
           </SignOutButton>
         </div>
+      </section>
+
+      <section className="mt-10 flex flex-col gap-3">
+        <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
+          Your kids
+        </h2>
+        <p className="text-sm text-ink-secondary">
+          Add a new kid, fix a typo in a name, swap an avatar, or remove a
+          kid. Edits preserve XP, streaks, and badges — removal also wipes
+          history (DB cascade), so we&apos;ll ask you to type the name to
+          confirm.
+        </p>
+        <ManageKidsCard
+          initial={(kidRows ?? []).map(
+            (k): KidRow => ({
+              id: k.id as string,
+              name: (k.name as string) ?? "",
+              age: (k.age as number) ?? 7,
+              avatar: (k.avatar as string) ?? "🦊",
+            }),
+          )}
+        />
       </section>
 
       <section className="mt-10 flex flex-col gap-3">
