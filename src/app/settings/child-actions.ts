@@ -8,12 +8,13 @@
 // live in src/app/settings/child-config.ts instead. Only async functions
 // and types belong here.
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
 import { isAvatar } from "@/lib/children/avatars";
+import { householdTag } from "@/lib/data/cached";
 import { MAX_KIDS } from "./child-config";
 
 export type ChildActionResult<T = void> =
@@ -105,6 +106,7 @@ export async function addChild(
     return { ok: false, error: error?.message ?? "Insert failed." };
   }
 
+  revalidateTag(householdTag(hh));
   revalidatePath("/");
   revalidatePath("/settings");
   return { ok: true, data: { childId: data.id as string } };
@@ -202,6 +204,7 @@ export async function removeChild(
     .eq("id", childId);
   if (error) return { ok: false, error: error.message };
 
+  revalidateTag(householdTag(hh));
   revalidatePath("/");
   revalidatePath("/settings");
   return { ok: true };

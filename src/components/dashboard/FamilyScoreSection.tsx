@@ -1,6 +1,6 @@
 import "server-only";
-import { createServiceSupabase } from "@/lib/supabase/server";
 import { scoreByPillar } from "@/lib/growth/score";
+import { getCachedApprovedCompletions } from "@/lib/data/cached";
 import { FamilyGrowthRadar } from "@/components/growth/FamilyGrowthRadar";
 import { ShareScoreButton } from "@/components/growth/ShareScoreButton";
 import type { PillarSlug } from "@/lib/types/pillar";
@@ -21,33 +21,16 @@ export async function FamilyScoreSection({
   focusPillars: PillarSlug[];
   childrenCount: number;
 }) {
-  const svc = createServiceSupabase();
-  const { data: kidIds } = await svc
-    .from("children")
-    .select("id")
-    .eq("household_id", householdId);
-  const childIds = (kidIds ?? []).map((k) => k.id as string);
-
-  const completions: Array<{ pillar: PillarSlug; approvedAt: string }> = [];
-  if (childIds.length > 0) {
-    const { data } = await svc
-      .from("quest_completions")
-      .select("approved_at, quests:quests(pillar)")
-      .in("child_id", childIds)
-      .not("approved_at", "is", null);
-    for (const c of data ?? []) {
-      const q = c.quests as unknown as { pillar?: PillarSlug } | null;
-      completions.push({
-        pillar: (q?.pillar ?? "scholar") as PillarSlug,
-        approvedAt: c.approved_at as string,
-      });
-    }
-  }
-
+  // Cached per-household; invalidated via revalidateTag('household:X')
+  // whenever a quest is approved or unapproved.
+  const completions = await getCachedApprovedCompletions(householdId);
   const growthScores = scoreByPillar({
     focusPillars,
     childrenCount: childrenCount || 1,
-    completions,
+    completions: completions.map((c) => ({
+      pillar: c.pillar,
+      approvedAt: c.approvedAt,
+    })),
   });
 
   return (
