@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import type { PillarSlug } from "@/lib/types/pillar";
 import { PILLAR_COPY } from "@/lib/pillars/copy";
@@ -10,7 +11,15 @@ export type ParentDashboardProps = {
   householdName: string;
   parentName: string;
   focusPillars: PillarSlug[];
-  growthScores: Record<PillarSlug, number | null>;
+  /**
+   * Pre-computed scores rendered inline. Mutually exclusive with
+   * `scoreSlot` — when `scoreSlot` is provided the caller is opting
+   * into Suspense streaming and we render the slot in place of the
+   * radar block.
+   */
+  growthScores?: Record<PillarSlug, number | null>;
+  /** Streamed family-score section (wrapped in Suspense by the caller). */
+  scoreSlot?: ReactNode;
   kids: Array<{
     childId: string;
     name: string;
@@ -38,6 +47,7 @@ export function ParentDashboard({
   kids,
   pendingApprovals,
   growthScores,
+  scoreSlot,
 }: ParentDashboardProps) {
   const firstName = parentName.split(" ")[0] || "";
   const pendingCount = pendingApprovals.length;
@@ -126,22 +136,26 @@ export function ParentDashboard({
         </div>
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2
-          className="font-display"
-          style={{
-            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-            fontSize: "1.75rem",
-            letterSpacing: "-0.015em",
-          }}
-        >
-          This season
-        </h2>
-        <div className="flex flex-col items-center gap-6 rounded-3xl bg-card p-6 shadow-md sm:p-8">
-          <FamilyGrowthRadar scores={growthScores} />
-          <ShareScoreButton householdName={householdName} />
-        </div>
-      </section>
+      {scoreSlot ? (
+        scoreSlot
+      ) : growthScores ? (
+        <section className="flex flex-col gap-4">
+          <h2
+            className="font-display"
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              fontSize: "1.75rem",
+              letterSpacing: "-0.015em",
+            }}
+          >
+            This month
+          </h2>
+          <div className="flex flex-col items-center gap-6 rounded-3xl bg-card p-6 shadow-md sm:p-8">
+            <FamilyGrowthRadar scores={growthScores} />
+            <ShareScoreButton householdName={householdName} />
+          </div>
+        </section>
+      ) : null}
 
       <section className="flex flex-col gap-4">
         <h2
