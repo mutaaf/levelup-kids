@@ -1,11 +1,20 @@
 "use server";
 
+// CRITICAL: every export from a "use server" file is wrapped as an async
+// server-action reference at the client boundary. Plain constants
+// (arrays, strings, numbers) exported from here arrive on the client as
+// FUNCTIONS, not values, and `.map()` on them throws "x.map is not a
+// function" — that exact bug shipped in the 11/manage-kids PR. Constants
+// live in src/app/settings/child-config.ts instead. Only async functions
+// and types belong here.
+
 import { revalidatePath } from "next/cache";
 import {
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
-import { AVATARS, isAvatar } from "@/lib/children/avatars";
+import { isAvatar } from "@/lib/children/avatars";
+import { MAX_KIDS } from "./child-config";
 
 export type ChildActionResult<T = void> =
   | { ok: true; data?: T }
@@ -16,8 +25,6 @@ export type ChildDraft = {
   age: number;
   avatar: string;
 };
-
-const MAX_CHILDREN = 6;
 
 function validate(d: ChildDraft): string | null {
   if (!d.name?.trim()) return "Every kid needs a name.";
@@ -62,10 +69,10 @@ export async function addChild(
     .from("children")
     .select("id", { count: "exact", head: true })
     .eq("household_id", hh);
-  if ((count ?? 0) >= MAX_CHILDREN) {
+  if ((count ?? 0) >= MAX_KIDS) {
     return {
       ok: false,
-      error: `You can have up to ${MAX_CHILDREN} kids per household.`,
+      error: `You can have up to ${MAX_KIDS} kids per household.`,
     };
   }
 
@@ -200,5 +207,3 @@ export async function removeChild(
   return { ok: true };
 }
 
-export const AVAILABLE_AVATARS = AVATARS;
-export const MAX_KIDS = MAX_CHILDREN;

@@ -5,10 +5,9 @@ import {
   addChild,
   removeChild,
   updateChild,
-  AVAILABLE_AVATARS,
-  MAX_KIDS,
   type ChildDraft,
 } from "@/app/settings/child-actions";
+import { AVAILABLE_AVATARS, MAX_KIDS } from "@/app/settings/child-config";
 
 export type KidRow = {
   id: string;
