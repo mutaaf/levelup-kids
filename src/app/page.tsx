@@ -7,6 +7,7 @@ import {
   getCurrentHousehold,
   getCurrentChildren,
 } from "@/lib/data/current";
+import { getCachedBadgeCountsByChild } from "@/lib/data/cached";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
 import {
@@ -111,16 +112,13 @@ export default async function Home() {
     return streak;
   }
 
-  // Badge counts per child.
-  const { data: badgesByChild } = await svc
-    .from("child_achievements")
-    .select("child_id")
-    .in("child_id", childIds);
-  const badgeCountByChild = new Map<string, number>();
-  for (const row of badgesByChild ?? []) {
-    const id = row.child_id as string;
-    badgeCountByChild.set(id, (badgeCountByChild.get(id) ?? 0) + 1);
-  }
+  // Badge counts per child — cross-request cache. Invalidated via
+  // revalidateTag('household:X') from approveQuest when a badge is awarded.
+  const badgeCountByChildRecord =
+    await getCachedBadgeCountsByChild(parent.household_id as string);
+  const badgeCountByChild = new Map(
+    Object.entries(badgeCountByChildRecord),
+  );
 
   const childCards = children.map((c) => {
     const t = totals.get(c.id as string)!;

@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
 import { evaluateAndAwardBadges } from "@/lib/achievements/award";
+import { householdTag } from "@/lib/data/cached";
 
 export type QuestActionResult =
   | { ok: true }
@@ -51,6 +52,7 @@ export async function markQuestReady(
     return { ok: false, error: error.message };
   }
 
+  revalidateTag(householdTag(parent.household_id as string));
   revalidatePath("/");
   revalidatePath(`/kids/${quest.child_id}`);
   return { ok: true };
@@ -92,6 +94,7 @@ export async function approveQuest(
   }
   if (completion.approved_at) {
     // Already approved — idempotent success.
+    revalidateTag(householdTag(parent.household_id as string));
     revalidatePath("/");
     revalidatePath(`/kids/${quest.child_id}`);
     return { ok: true };
@@ -118,6 +121,7 @@ export async function approveQuest(
     );
   }
 
+  revalidateTag(householdTag(parent.household_id as string));
   revalidatePath("/");
   revalidatePath(`/kids/${quest.child_id}`);
   return { ok: true };
@@ -162,6 +166,7 @@ export async function rejectCompletion(
     .eq("id", completionId);
   if (error) return { ok: false, error: error.message };
 
+  revalidateTag(householdTag(parent.household_id as string));
   revalidatePath("/");
   revalidatePath(`/kids/${completion.child_id}`);
   return { ok: true };
