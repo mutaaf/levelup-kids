@@ -41,6 +41,9 @@ export function isPublicPath(pathname: string): boolean {
   // Vercel cron jobs hit this with `Authorization: Bearer $CRON_SECRET`;
   // the route enforces the secret itself.
   if (normalized.startsWith("/api/cron/")) return true;
+  // Offline fallback page must be reachable without a session — it's
+  // what the service worker serves when the network is unreachable.
+  if (normalized === "/offline") return true;
   return PUBLIC_PATH_SET.has(normalized);
 }
 
