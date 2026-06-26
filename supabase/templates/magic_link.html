@@ -3,12 +3,14 @@
   <body
     style="
       margin: 0;
-      padding: 32px;
-      background-color: #faf7f2;
-      color: #1f1b16;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 0;
+      background-color: #f7f8fb;
+      color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+        'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       font-size: 16px;
       line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
     "
   >
     <table
@@ -16,38 +18,133 @@
       width="100%"
       cellpadding="0"
       cellspacing="0"
-      style="max-width: 480px; margin: 0 auto;"
+      border="0"
+      style="background-color: #f7f8fb; padding: 40px 16px;"
     >
       <tr>
-        <td>
-          <p style="margin: 0 0 16px;">
-            Tap to sign in. The link expires in 60 minutes.
-          </p>
-          <p style="margin: 0 0 24px;">
-            <a
-              href="{{ .ConfirmationURL }}"
-              style="
-                display: inline-block;
-                padding: 12px 20px;
-                background-color: #d2562b;
-                color: #faf7f2;
-                text-decoration: none;
-                border-radius: 999px;
-                font-weight: 500;
-              "
-              >Sign in to LevelUp Kids</a
-            >
-          </p>
-          <p style="margin: 0 0 8px; color: #5c5448;">
-            If the button does not work, paste this link into your browser:
-          </p>
-          <p style="margin: 0; word-break: break-all; color: #5c5448; font-size: 14px;">
-            {{ .ConfirmationURL }}
-          </p>
-          <p style="margin: 32px 0 0; color: #8a8275; font-size: 14px;">
-            You are receiving this because someone entered your address at
-            levelupkids.app. If that was not you, ignore this message and the
-            link will expire on its own.
+        <td align="center">
+          <table
+            role="presentation"
+            width="520"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              max-width: 520px;
+              background-color: #ffffff;
+              border-radius: 24px;
+              box-shadow: 0 18px 40px -12px rgba(15, 23, 42, 0.12),
+                0 2px 6px rgba(15, 23, 42, 0.04);
+              overflow: hidden;
+            "
+          >
+            <tr>
+              <td style="padding: 36px 36px 12px 36px;">
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                >
+                  <tr>
+                    <td>
+                      <div
+                        style="
+                          display: inline-block;
+                          width: 44px;
+                          height: 44px;
+                          background-color: #6366f1;
+                          border-radius: 14px;
+                          color: #ffffff;
+                          font-size: 24px;
+                          font-weight: 800;
+                          letter-spacing: -0.04em;
+                          text-align: center;
+                          line-height: 44px;
+                          font-family: -apple-system, BlinkMacSystemFont,
+                            'SF Pro Display', system-ui, sans-serif;
+                        "
+                      >
+                        L
+                      </div>
+                    </td>
+                    <td
+                      style="
+                        padding-left: 12px;
+                        font-size: 17px;
+                        font-weight: 700;
+                        color: #0f172a;
+                        vertical-align: middle;
+                      "
+                    >
+                      LevelUp Kids
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 24px 36px 0 36px;">
+                <h1
+                  style="
+                    margin: 0 0 12px 0;
+                    font-size: 28px;
+                    line-height: 1.15;
+                    letter-spacing: -0.02em;
+                    color: #0f172a;
+                    font-weight: 700;
+                  "
+                >
+                  Your sign-in code.
+                </h1>
+                <p style="margin: 0 0 24px 0; color: #475569; font-size: 17px;">
+                  Type this 6-digit code into the LevelUp Kids tab you just
+                  opened. The code expires in 60 minutes.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 4px 36px 28px 36px;">
+                <div
+                  style="
+                    display: inline-block;
+                    padding: 20px 28px;
+                    background-color: #eef2ff;
+                    border: 2px solid #c7d2fe;
+                    border-radius: 18px;
+                    color: #4f46e5;
+                    font-size: 36px;
+                    font-weight: 700;
+                    letter-spacing: 0.35em;
+                    font-family: ui-monospace, 'SF Mono', Menlo, Consolas,
+                      monospace;
+                  "
+                >
+                  {{ .Token }}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #eef2f7; padding: 20px 36px;">
+                <p style="margin: 0; color: #64748b; font-size: 13px;">
+                  You're receiving this because someone (hopefully you)
+                  entered this address at LevelUp Kids. If it wasn't you,
+                  ignore this email — the code expires on its own and
+                  nothing happens.
+                </p>
+              </td>
+            </tr>
+          </table>
+          <p
+            style="
+              margin: 20px 0 0 0;
+              color: #94a3b8;
+              font-size: 12px;
+              text-align: center;
+            "
+          >
+            LevelUp Kids &middot; raise the kind of adult you actually want
+            to raise.
           </p>
         </td>
       </tr>

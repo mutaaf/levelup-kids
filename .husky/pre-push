@@ -1,0 +1,4 @@
+# Heavier checks before push — typecheck the whole project and run the
+# vitest suite. Skips the live-Supabase RLS tests (those run in CI). If
+# you really need to bypass for an emergency, `git push --no-verify`.
+npm run typecheck && npm run test

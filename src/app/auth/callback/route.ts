@@ -1,25 +1,70 @@
-import { NextResponse, type NextRequest } from "next/server";
 import {
-  createServerSupabase,
-  createServiceSupabase,
-} from "@/lib/supabase/server";
+  createServerClient,
+  type CookieMethodsServer,
+  type CookieOptions,
+} from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import { createServiceSupabase } from "@/lib/supabase/server";
 import { handleAuthCallback } from "./handler";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // GET /auth/callback?code=… — landing target for the magic-link email.
 //
-// Flow (ticket 0003 ACs):
-//   1. Exchange the code for a session via supabase.auth.exchangeCodeForSession().
-//      The @supabase/ssr server client will write the session cookies onto
-//      our outgoing response.
-//   2. Look up the parents row (service role bypasses RLS — safe here, the
-//      auth.uid() has already been verified by the code exchange).
-//   3. Branch:
-//        - no parents row → upsert {id, email, name:"", household_id:null}
-//          then redirect to /onboarding/household.
-//        - parents row exists with household_id NULL → /onboarding/household.
-//        - parents row exists with household_id NOT NULL → / (or `?next=`).
+// EXPLICIT COOKIE ATTACH PATTERN (third revision, 2026-06-22):
+//
+// Diagnostic /api/debug/whoami confirmed that even with the "canonical"
+// cookies()-from-next/headers pattern, session cookies were NOT making it
+// onto the browser after the callback. Suspected: Vercel's route-handler
+// runtime doesn't auto-attach cookies() writes to a fresh
+// NextResponse.redirect() we return.
+//
+// Fix: collect the cookies @supabase/ssr wants to set into a plain JS
+// array during exchangeCodeForSession, then BUILD the redirect response
+// and set each cookie explicitly on it with full original options.
+// Bypasses every layer of auto-magic.
+type PendingCookie = {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+};
+
 export async function GET(request: NextRequest): Promise<Response> {
-  const supabase = await createServerSupabase();
+  const pending: PendingCookie[] = [];
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    return NextResponse.redirect(
+      new URL(
+        "/auth/signin?error=supabase-not-configured",
+        request.url,
+      ),
+    );
+  }
+
+  const cookieAdapter: CookieMethodsServer = {
+    getAll() {
+      return request.cookies.getAll().map((c) => ({
+        name: c.name,
+        value: c.value,
+      }));
+    },
+    setAll(cookiesToSet) {
+      for (const c of cookiesToSet) {
+        pending.push({
+          name: c.name,
+          value: c.value,
+          options: c.options,
+        });
+      }
+    },
+  };
+
+  const supabase = createServerClient(url, anonKey, {
+    cookies: cookieAdapter,
+  });
   const svc = createServiceSupabase();
 
   const result = await handleAuthCallback({
@@ -27,8 +72,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     async exchangeCode(code) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error || !data?.user) {
+        console.warn(
+          `[auth.callback] exchangeCode failed: ${error?.message ?? "no user"}`,
+        );
         throw new Error(error?.message ?? "exchange-failed");
       }
+      console.log(
+        `[auth.callback] exchanged code for ${data.user.id} — collected ${pending.length} cookies`,
+      );
       return { user: { id: data.user.id, email: data.user.email ?? null } };
     },
     async loadParents(userId) {
@@ -45,11 +96,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       };
     },
     async upsertParents(row) {
-      // Per ticket 0003 AC: id = auth.uid(), email, name "", household_id null.
-      // The 0002 schema originally declared household_id NOT NULL; migration
-      // 0002_parents_household_nullable.sql (this ticket) relaxes that so a
-      // pre-household parents row is a legal state until /onboarding/household
-      // (ticket 0004) fills it in.
       const { error } = await svc.from("parents").upsert(
         {
           id: row.id,
@@ -63,8 +109,24 @@ export async function GET(request: NextRequest): Promise<Response> {
     },
   });
 
-  // Always-respond: build the redirect against the request's origin so the
-  // hosted environment never accidentally redirects to localhost.
-  const url = new URL(result.location, request.url);
-  return NextResponse.redirect(url);
+  // Build the redirect, then explicitly attach every cookie supabase asked
+  // us to set. This is the line of code that finally makes the session
+  // persist to the browser on Vercel.
+  const redirectUrl = new URL(result.location, request.url);
+  const response = NextResponse.redirect(redirectUrl);
+  for (const c of pending) {
+    response.cookies.set({
+      name: c.name,
+      value: c.value,
+      ...(c.options ?? {}),
+    });
+  }
+  // No-store so no edge cache ever strips the Set-Cookie headers.
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+
+  console.log(
+    `[auth.callback] redirecting to ${result.location} with ${pending.length} Set-Cookie headers`,
+  );
+
+  return response;
 }

@@ -31,7 +31,7 @@ jobs:
           node-version: "22.11.0"
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund --prefer-offline
       - name: ESLint + backlog integrity (npm run lint)
         run: npm run lint
       - name: TypeScript (tsc --noEmit)
@@ -48,7 +48,7 @@ jobs:
           node-version: "22.11.0"
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund --prefer-offline
 
       # The RLS test suite (tests/db/rls.test.ts, ticket 0002) needs a live
       # local Supabase to actually exercise the policies. Without it the
@@ -99,7 +99,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund --prefer-offline
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1

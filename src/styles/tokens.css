@@ -1,60 +1,62 @@
-/* Design tokens — mirrors docs/DESIGN.md §2. The single source of truth for
-   color, type scale, radius, and shadow. Tailwind v4 reads these via the
-   @theme block in src/app/globals.css; raw CSS reads them directly. */
+/* Design tokens — Apple + Google vibe (updated 2026-06-22).
+   Cool clean whites, vibrant indigo brand, saturated pillar palette, rounded
+   friendly sans display. Tailwind v4 reads these via the @theme block in
+   src/app/globals.css. */
 
 :root {
-  /* Surface */
-  --surface-paper: #faf7f2; /* the default page background — cream */
-  --surface-card: #ffffff; /* lifted card surface */
-  --surface-elevated: #ffffff; /* dialogs, popovers */
-  --surface-tinted: #f2ede4; /* secondary background; "kitchen counter" */
+  /* Surface — cool clean whites, modern consumer product. */
+  --surface-paper: #f7f8fb;       /* page background — very light cool gray */
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-tinted: #eef2f7;      /* hover/pressed/secondary chip background */
 
-  /* Ink */
-  --ink-primary: #1f1b16; /* warm near-black — never #000 */
-  --ink-secondary: #5c5448;
-  --ink-muted: #8a8275;
-  --ink-inverse: #faf7f2; /* on a dark surface */
+  /* Ink — cool slate, near-black but not pure black. */
+  --ink-primary: #0f172a;         /* slate-900 */
+  --ink-secondary: #475569;       /* slate-600 */
+  --ink-muted: #94a3b8;           /* slate-400 */
+  --ink-inverse: #ffffff;
 
-  /* Brand — clay/terracotta, NOT purple-gradient AI bait */
-  --brand-50: #fbefe9;
-  --brand-500: #d2562b; /* the primary brand color */
-  --brand-600: #b0411e;
-  --brand-900: #4a1a0c;
+  /* Brand — vibrant indigo (Apple iOS settings energy, Google Material 3
+     primary tone). Cooler, more confident, less warm-coffee than terracotta. */
+  --brand-50: #eef2ff;
+  --brand-500: #6366f1;           /* indigo-500 */
+  --brand-600: #4f46e5;           /* indigo-600 */
+  --brand-900: #312e81;
 
-  /* Pillar palette — every pillar gets a tint that matches the kind of child
-     it makes. Used ONLY in pillar context (see docs/DESIGN.md §2). */
-  --pillar-scholar: #b07a2b; /* warm ochre — the library lamp */
-  --pillar-athlete: #4a7a3a; /* moss green — the grass field */
-  --pillar-builder: #8a5a3a; /* sawn-wood brown */
-  --pillar-creator: #c2528c; /* rosewater — the paintbox */
-  --pillar-leader: #4a6b8c; /* uniform blue — the captain's stripe */
-  --pillar-character: #6b4a8c; /* dusk violet — the prayer hour */
-  --pillar-explorer: #2b7a6b; /* river teal */
-  --pillar-purpose: #b0411e; /* same as brand-600 — service is the point */
+  /* Pillar palette — vibrant, distinguishable at a glance. Each one is a
+     known Tailwind color around the 500 level so they read consistently. */
+  --pillar-scholar:   #f59e0b;    /* amber  — the open book */
+  --pillar-athlete:   #22c55e;    /* green  — fresh grass field */
+  --pillar-builder:   #d97706;    /* darker amber — sawn wood */
+  --pillar-creator:   #ec4899;    /* pink   — paintbox */
+  --pillar-leader:    #0ea5e9;    /* sky    — captain's stripe */
+  --pillar-character: #8b5cf6;    /* violet — virtue */
+  --pillar-explorer:  #14b8a6;    /* teal   — river */
+  --pillar-purpose:   #ef4444;    /* red    — service */
 
   /* Semantic */
-  --success: #3f7a3f;
-  --warning: #b07a2b;
-  --danger: #a8331f;
+  --success: #10b981;             /* emerald */
+  --warning: #f59e0b;
+  --danger:  #ef4444;
 
-  /* Geometry */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  /* Geometry — slightly softer Apple-ish radii (Material 3 territory). */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
   --radius-pill: 999px;
 
-  /* Shadow — soft, warm, never neon */
-  --shadow-sm: 0 1px 2px rgba(31, 27, 22, 0.06);
-  --shadow-md: 0 4px 12px rgba(31, 27, 22, 0.08);
-  --shadow-lg: 0 16px 40px rgba(31, 27, 22, 0.1);
+  /* Shadow — cool slate-based, more lifted than warm tone. */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 16px -4px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 18px 40px -12px rgba(15, 23, 42, 0.18);
 
-  /* Type scale (mobile-first; desktop bumps via clamp) */
-  --text-display: clamp(40px, 8vw, 64px);
-  --text-h1: clamp(28px, 5vw, 36px);
-  --text-h2: clamp(22px, 4vw, 28px);
-  --text-h3: 18px;
-  --text-body: 16px;
-  --text-small: 14px;
-  --text-pip: 12px;
+  /* Type scale — confident headlines, comfortable body. */
+  --text-display: clamp(48px, 9vw, 80px);
+  --text-h1: clamp(34px, 6vw, 52px);
+  --text-h2: clamp(26px, 4vw, 36px);
+  --text-h3: 22px;
+  --text-body: 17px;
+  --text-small: 15px;
+  --text-pip: 13px;
 }

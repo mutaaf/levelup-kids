@@ -1,0 +1,97 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import {
+  createServiceSupabase,
+  getSessionUser,
+} from "@/lib/supabase/server";
+import { isPillarSlug, type PillarSlug } from "@/lib/types/pillar";
+import { seedFirstWeek } from "@/lib/quests/selector";
+
+export type SetFocusPillarsResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function setFocusPillars(
+  pillars: string[],
+): Promise<SetFocusPillarsResult> {
+  if (!Array.isArray(pillars)) {
+    return { ok: false, error: "Pick 2 or 3 pillars." };
+  }
+  if (pillars.length < 2 || pillars.length > 3) {
+    return { ok: false, error: "Pick 2 or 3 pillars." };
+  }
+  const validated: PillarSlug[] = [];
+  for (const p of pillars) {
+    if (!isPillarSlug(p)) return { ok: false, error: `Unknown pillar: ${p}` };
+    validated.push(p);
+  }
+  const user = await getSessionUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const svc = createServiceSupabase();
+  const { data: parent } = await svc
+    .from("parents")
+    .select("household_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!parent?.household_id) {
+    return { ok: false, error: "Create your household first." };
+  }
+  const householdId = parent.household_id as string;
+
+  // Save focus pillars on the household.
+  const { error: hhErr } = await svc
+    .from("households")
+    .update({ focus_pillars: validated })
+    .eq("id", householdId);
+  if (hhErr) return { ok: false, error: hhErr.message };
+
+  // Load children to seed quests for each (need age for the selector's
+  // age-filter against the global library + household custom quests).
+  const { data: kids, error: kErr } = await svc
+    .from("children")
+    .select("id, age")
+    .eq("household_id", householdId);
+  if (kErr) return { ok: false, error: kErr.message };
+  if (!kids || kids.length === 0) {
+    return { ok: false, error: "Add at least one child before picking pillars." };
+  }
+
+  // Load this household's custom quests (active only) so they're eligible
+  // for the first-week seeding alongside the global library.
+  const { data: customRows } = await svc
+    .from("household_quests")
+    .select("title, description, pillar, age_min, age_max, xp_reward")
+    .eq("household_id", householdId)
+    .eq("is_active", true);
+  const customTemplates = (customRows ?? []).map((r) => ({
+    pillar: r.pillar as PillarSlug,
+    title: r.title as string,
+    description: (r.description as string | null) ?? "",
+    xpReward: (r.xp_reward as number | null) ?? 5,
+    difficulty: 1 as const,
+    ageMin: (r.age_min as number | null) ?? 4,
+    ageMax: (r.age_max as number | null) ?? 17,
+  }));
+
+  // Clear any existing quests for these children, then seed the first week.
+  // (Idempotent: if onboarding is rerun the seed is fresh.)
+  const childIds = kids.map((c) => c.id as string);
+  await svc.from("quests").delete().in("child_id", childIds);
+
+  const rows = seedFirstWeek({
+    children: kids.map((c) => ({
+      id: c.id as string,
+      age: (c.age as number | null) ?? 7,
+    })),
+    focusPillars: validated,
+    customTemplates,
+  });
+  if (rows.length > 0) {
+    const { error: qErr } = await svc.from("quests").insert(rows);
+    if (qErr) return { ok: false, error: qErr.message };
+  }
+
+  redirect("/");
+}
