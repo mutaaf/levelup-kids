@@ -27,6 +27,7 @@ export type CompletionForScore = {
   approvedAt: string;
   childId: string;
   xpAwarded: number;
+  questTitle: string;
 };
 
 /**
@@ -49,18 +50,24 @@ export function getCachedApprovedCompletions(
 
       const { data } = await svc
         .from("quest_completions")
-        .select("child_id, xp_awarded, approved_at, quests:quests(pillar)")
+        .select(
+          "child_id, xp_awarded, approved_at, quests:quests(pillar, title)",
+        )
         .in("child_id", childIds)
         .not("approved_at", "is", null);
 
       const out: CompletionForScore[] = [];
       for (const c of data ?? []) {
-        const q = c.quests as unknown as { pillar?: PillarSlug } | null;
+        const q = c.quests as unknown as {
+          pillar?: PillarSlug;
+          title?: string;
+        } | null;
         out.push({
           pillar: (q?.pillar ?? "scholar") as PillarSlug,
           approvedAt: c.approved_at as string,
           childId: c.child_id as string,
           xpAwarded: (c.xp_awarded as number | null) ?? 0,
+          questTitle: (q?.title as string | undefined) ?? "",
         });
       }
       return out;
