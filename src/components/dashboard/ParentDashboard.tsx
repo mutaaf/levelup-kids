@@ -52,6 +52,19 @@ export function ParentDashboard({
   const firstName = parentName.split(" ")[0] || "";
   const pendingCount = pendingApprovals.length;
 
+  // Aggregate Tonight stats across kids — surfaces as the focal "X of Y
+  // done" pill at the top of the kids grid so the parent sees the
+  // night's status in 2 seconds.
+  const tonightDone = kids.reduce((n, k) => n + (k.todayDone ?? 0), 0);
+  const tonightTotal = kids.reduce((n, k) => n + (k.todayTotal ?? 0), 0);
+  const tonightAllDone = tonightTotal > 0 && tonightDone === tonightTotal;
+  const tonightLabel =
+    tonightTotal === 0
+      ? "Quests load tomorrow morning"
+      : tonightAllDone
+        ? `${tonightDone} for ${tonightTotal} tonight 🎉`
+        : `${tonightDone} of ${tonightTotal} done tonight`;
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-screen-lg flex-col gap-8 px-5 py-6 pb-32 sm:px-8 sm:py-10">
       <header className="flex items-start justify-between gap-4">
@@ -92,48 +105,64 @@ export function ParentDashboard({
         </div>
       </header>
 
-      {pendingCount > 0 && (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <h2
-              className="font-display"
-              style={{
-                fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-                fontSize: "1.75rem",
-                letterSpacing: "-0.015em",
-              }}
-            >
-              {pendingCount === 1
-                ? "1 quest to approve"
-                : `${pendingCount} quests to approve`}
-            </h2>
-            <span
-              className="rounded-full px-3 py-1 text-sm font-bold text-white"
-              style={{ backgroundColor: "var(--brand-500)" }}
-            >
-              {pendingCount}
-            </span>
-          </div>
-          <ApprovalQueue items={pendingApprovals} />
-        </section>
-      )}
-
+      {/* FOCAL: Tonight — what the family does NEXT. Approval queue
+          folds in as a nested card so the whole loop sits in one block. */}
       <section className="flex flex-col gap-4">
-        <h2
-          className="font-display"
-          style={{
-            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-            fontSize: "1.75rem",
-            letterSpacing: "-0.015em",
-          }}
-        >
-          Your family
-        </h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2
+            className="font-display"
+            style={{
+              fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+              fontSize: "1.75rem",
+              letterSpacing: "-0.015em",
+            }}
+          >
+            Tonight
+          </h2>
+          <span
+            className="rounded-full px-3 py-1.5 text-sm font-bold"
+            style={{
+              backgroundColor: tonightAllDone
+                ? "color-mix(in srgb, var(--success) 18%, transparent)"
+                : "color-mix(in srgb, var(--brand-500) 12%, transparent)",
+              color: tonightAllDone ? "var(--success)" : "var(--brand-600)",
+            }}
+          >
+            {tonightLabel}
+          </span>
+        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {kids.map((c) => (
             <ChildCard key={c.childId} {...c} />
           ))}
         </div>
+
+        {pendingCount > 0 && (
+          <div className="flex flex-col gap-3 rounded-3xl bg-card p-5 shadow-md">
+            <div className="flex items-baseline justify-between">
+              <h3
+                className="font-display"
+                style={{
+                  fontFamily:
+                    "var(--font-fraunces), ui-serif, Georgia, serif",
+                  fontSize: "1.25rem",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {pendingCount === 1
+                  ? "1 quest to approve"
+                  : `${pendingCount} quests to approve`}
+              </h3>
+              <span
+                className="rounded-full px-3 py-1 text-sm font-bold text-white"
+                style={{ backgroundColor: "var(--brand-500)" }}
+              >
+                {pendingCount}
+              </span>
+            </div>
+            <ApprovalQueue items={pendingApprovals} />
+          </div>
+        )}
       </section>
 
       {scoreSlot ? (
