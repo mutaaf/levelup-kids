@@ -17,6 +17,7 @@ import {
   CoParentInviteCard,
   type PendingInvite,
 } from "@/components/auth/CoParentInviteCard";
+import { ChildFocusCard } from "@/components/quests/ChildFocusCard";
 import {
   ManageKidsCard,
   type KidRow,
@@ -70,6 +71,14 @@ export default async function SettingsPage() {
     .select("id, name, email")
     .eq("household_id", parent.household_id)
     .neq("id", user.id);
+
+  // Per-child focus pillars (this-month goals). Backfilled from
+  // household.focus_pillars on existing rows by migration 0010.
+  const { data: kidsForFocus } = await svc
+    .from("children")
+    .select("id, name, avatar, focus_pillars")
+    .eq("household_id", parent.household_id)
+    .order("age", { ascending: true });
 
   // Kids in the household — feeds ManageKidsCard (add/edit/remove).
   const { data: kidRows } = await svc
@@ -199,12 +208,36 @@ export default async function SettingsPage() {
 
       <section className="mt-10 flex flex-col gap-3">
         <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
+          This month&apos;s focus
+        </h2>
+        <p className="text-sm text-ink-secondary">
+          Each kid picks the 2-4 pillars they&apos;re working on this month.
+          Their quests, radar, and badges reflect their own focus, not a
+          one-size-fits-all household setting.
+        </p>
+        <div className="flex flex-col gap-3">
+          {(kidsForFocus ?? []).map((k) => (
+            <ChildFocusCard
+              key={k.id as string}
+              childId={k.id as string}
+              name={(k.name as string) ?? ""}
+              avatar={(k.avatar as string) ?? "🦊"}
+              initial={
+                ((k.focus_pillars as string[] | null) ?? []) as PillarSlug[]
+              }
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10 flex flex-col gap-3">
+        <h2 className="text-sm font-medium tracking-widest text-ink-secondary uppercase">
           Custom quests
         </h2>
         <p className="text-sm text-ink-secondary">
           Add quests specific to your family on top of the built-in library —
           chores that matter, traditions, skills you&apos;re working on this
-          season. They mix in with the seeded quests based on each kid&apos;s
+          month. They mix in with the seeded quests based on each kid&apos;s
           age and the pillars you&apos;ve picked.
         </p>
         <CustomQuestsCard
