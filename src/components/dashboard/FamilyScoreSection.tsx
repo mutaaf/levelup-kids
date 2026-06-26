@@ -1,8 +1,9 @@
 import "server-only";
 import { scoreByPillar } from "@/lib/growth/score";
+import { buildPillarBreakdowns } from "@/lib/growth/breakdown";
 import { getCachedApprovedCompletions } from "@/lib/data/cached";
-import { FamilyGrowthRadar } from "@/components/growth/FamilyGrowthRadar";
-import { ShareScoreButton } from "@/components/growth/ShareScoreButton";
+import { getCurrentChildren } from "@/lib/data/current";
+import { InteractiveFamilyScore } from "@/components/growth/InteractiveFamilyScore";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 // Streamed section. Async server component — the parent dashboard wraps
@@ -33,51 +34,59 @@ export async function FamilyScoreSection({
     })),
   });
 
+  // Per-pillar breakdown powers the drill-in drawer. cache() dedupe
+  // means getCurrentChildren reuses the dashboard's earlier query —
+  // no extra round-trip.
+  const kids = await getCurrentChildren();
+  const breakdowns = buildPillarBreakdowns({
+    children: kids,
+    completions,
+  });
+
   return (
-    <section className="flex flex-col gap-4">
-      <h2
-        className="font-display"
-        style={{
-          fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-          fontSize: "1.75rem",
-          letterSpacing: "-0.015em",
-        }}
-      >
-        This month
-      </h2>
-      <div className="flex flex-col items-center gap-6 rounded-3xl bg-card p-6 shadow-md sm:p-8">
-        <FamilyGrowthRadar scores={growthScores} />
-        <ShareScoreButton householdName={householdName} />
+    <section className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-xs font-bold tracking-widest text-ink-muted uppercase">
+          This month
+        </h2>
+        <span className="text-xs font-semibold text-ink-muted">
+          Family Growth Score
+        </span>
+      </div>
+      <div className="rounded-3xl bg-card p-5 shadow-sm sm:p-6">
+        <InteractiveFamilyScore
+          householdName={householdName}
+          scores={growthScores}
+          breakdowns={breakdowns}
+        />
       </div>
     </section>
   );
 }
 
-/** Skeleton shown while FamilyScoreSection streams in. Same shape so
- *  the layout doesn't jump when the radar swaps in. */
+/** Skeleton shown while FamilyScoreSection streams in. Matches the
+ *  secondary-tier compact layout so the page doesn't jump. */
 export function FamilyScoreSkeleton() {
   return (
-    <section className="flex flex-col gap-4">
-      <h2
-        className="font-display"
-        style={{
-          fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
-          fontSize: "1.75rem",
-          letterSpacing: "-0.015em",
-        }}
-      >
-        This month
-      </h2>
-      <div className="flex flex-col items-center gap-6 rounded-3xl bg-card p-6 shadow-md sm:p-8">
+    <section className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-xs font-bold tracking-widest text-ink-muted uppercase">
+          This month
+        </h2>
+        <span className="text-xs font-semibold text-ink-muted">
+          Family Growth Score
+        </span>
+      </div>
+      <div className="flex flex-col items-center gap-4 rounded-3xl bg-card p-5 shadow-sm sm:p-6">
         <div
-          className="size-[280px] animate-pulse rounded-full sm:size-[360px]"
+          className="size-[220px] animate-pulse rounded-full sm:size-[260px]"
           style={{
             background:
               "radial-gradient(closest-side, color-mix(in srgb, var(--brand-500) 8%, transparent), transparent)",
           }}
           aria-hidden
         />
-        <div className="h-10 w-56 animate-pulse rounded-full bg-tinted" />
+        <div className="h-9 w-48 animate-pulse rounded-full bg-tinted" />
         <p className="sr-only">Loading this month&apos;s score…</p>
       </div>
     </section>
