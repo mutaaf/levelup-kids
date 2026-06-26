@@ -64,7 +64,7 @@ export default async function CoachPage() {
         The Coach knows your household, your focus pillars, your children&apos;s
         ages, and what they&apos;ve done recently. Ask anything — &quot;How do
         I help Yusuf get into reading?&quot;, &quot;What should we do for
-        Ramadan?&quot;, &quot;Layla is bored with athlete quests.&quot;
+        Ramadan?&quot;, &quot;Zara is bored with athlete quests.&quot;
       </p>
 
       {!hasApiKey && (

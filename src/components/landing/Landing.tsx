@@ -146,6 +146,12 @@ export function Landing() {
           </div>
         </section>
 
+        {/* development arc — concrete behavior changes, not vague benefits */}
+        <DevelopmentArc />
+
+        {/* sample real quests across pillars */}
+        <SampleQuests />
+
         {/* how it works */}
         <section className="mt-24">
           <div className="flex flex-col items-center gap-3 text-center">
@@ -182,6 +188,9 @@ export function Landing() {
             />
           </div>
         </section>
+
+        {/* honest band — what this is NOT, because differentiation matters */}
+        <NotWhatThisIs />
 
         {/* cta */}
         <section
@@ -261,6 +270,250 @@ function HowStep({
   );
 }
 
+// "What changes" — three concrete behavioral snapshots. Avoid vague
+// promises ("a happier kid!") and stick to specific, observable shifts.
+function DevelopmentArc() {
+  const frames = [
+    {
+      label: "Week 1",
+      caption: "First quest tonight",
+      points: [
+        "One quest per kid per pillar",
+        "Kid taps Done, you tap Approve",
+        "Awkward at first — that's fine",
+      ],
+      tint: "var(--pillar-scholar)",
+    },
+    {
+      label: "Week 4",
+      caption: "Habit forming",
+      points: [
+        "First 🔥 7-day streak",
+        "First badge earned — kid shows the whole family",
+        "Kid asks YOU about quests instead of vice versa",
+      ],
+      tint: "var(--pillar-character)",
+    },
+    {
+      label: "Week 12",
+      caption: "Visible change",
+      points: [
+        "Radar fills out across all focus pillars",
+        "Mornings are calmer — quests replace nagging",
+        "Family Growth Score becomes a Sunday-night ritual",
+      ],
+      tint: "var(--pillar-purpose)",
+    },
+  ];
+
+  return (
+    <section className="mt-24">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <p className="text-base font-bold tracking-wide text-brand-600 uppercase">
+          What actually changes
+        </p>
+        <h2
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "clamp(32px, 5vw, 48px)",
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Three months in, you can see it.
+        </h2>
+        <p className="mt-1 max-w-xl text-lg text-ink-secondary">
+          The change isn&apos;t a personality transplant. It&apos;s the small
+          shifts that compound: one habit, one streak, one Sunday-night recap
+          at a time.
+        </p>
+      </div>
+      <div className="mt-10 grid gap-5 sm:grid-cols-3">
+        {frames.map((f) => (
+          <article
+            key={f.label}
+            className="relative flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-md transition-transform hover:-translate-y-0.5"
+          >
+            <div
+              aria-hidden
+              className="absolute top-0 left-0 h-full w-1.5 rounded-l-3xl"
+              style={{ backgroundColor: f.tint }}
+            />
+            <div className="flex items-baseline justify-between">
+              <span
+                className="text-sm font-bold tracking-wide uppercase"
+                style={{ color: f.tint }}
+              >
+                {f.label}
+              </span>
+              <span className="text-sm font-semibold text-ink-muted">
+                {f.caption}
+              </span>
+            </div>
+            <ul className="flex flex-col gap-2.5">
+              {f.points.map((p) => (
+                <li
+                  key={p}
+                  className="flex items-start gap-2.5 text-base text-ink-primary"
+                >
+                  <span
+                    aria-hidden
+                    className="mt-2 inline-block size-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: f.tint }}
+                  />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Real quests, hand-picked from the seed library so visitors see exactly
+// what their kids will tap on. Six samples across the eight pillars.
+function SampleQuests() {
+  const samples = [
+    { pillar: "scholar", title: "Read for 20 minutes", xp: 15, age: "8-11" },
+    { pillar: "athlete", title: "15 minutes outside", xp: 15, age: "8-11" },
+    { pillar: "character", title: "Tell a parent one true thing", xp: 10, age: "all" },
+    { pillar: "purpose", title: "Give something away that's still good", xp: 20, age: "8-11" },
+    { pillar: "creator", title: "Make something that didn't exist this morning", xp: 15, age: "8-11" },
+    { pillar: "explorer", title: "Look up something you wonder about", xp: 10, age: "8-11" },
+  ] as const;
+
+  return (
+    <section className="mt-24">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <p className="text-base font-bold tracking-wide text-brand-600 uppercase">
+          A real day of quests
+        </p>
+        <h2
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "clamp(32px, 5vw, 48px)",
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Specific. Doable. No screens required.
+        </h2>
+        <p className="mt-1 max-w-xl text-lg text-ink-secondary">
+          A few of the 60+ hand-written templates. Age-targeted, pillar-coded,
+          short enough that a 9-year-old will actually do them.
+        </p>
+      </div>
+      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {samples.map((q) => {
+          const copy = PILLAR_COPY[q.pillar];
+          return (
+            <article
+              key={q.title}
+              className="relative flex flex-col gap-3 rounded-3xl bg-card p-5 shadow-md"
+            >
+              <div
+                aria-hidden
+                className="absolute top-0 left-0 h-full w-1.5 rounded-l-3xl"
+                style={{ backgroundColor: copy.tint }}
+              />
+              <header className="flex items-center justify-between">
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-bold text-white"
+                  style={{ backgroundColor: copy.tint }}
+                >
+                  {copy.title}
+                </span>
+                <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-600">
+                  +{q.xp} XP
+                </span>
+              </header>
+              <p className="text-lg font-semibold text-ink-primary">
+                {q.title}
+              </p>
+              <p className="text-sm text-ink-muted">Ages {q.age}</p>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// Honest band — say what we're NOT so visitors who want those things
+// self-select out instead of churning later.
+function NotWhatThisIs() {
+  return (
+    <section className="mt-24">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <p className="text-base font-bold tracking-wide text-brand-600 uppercase">
+          What this is not
+        </p>
+        <h2
+          className="font-display"
+          style={{
+            fontFamily: "var(--font-fraunces), ui-serif, Georgia, serif",
+            fontSize: "clamp(32px, 5vw, 48px)",
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          We&apos;re honest about the boundaries.
+        </h2>
+      </div>
+      <div className="mt-10 grid gap-4 sm:grid-cols-2">
+        {[
+          {
+            no: "A kid app with infinite scroll",
+            yes: "A parent tool with brief kid moments. The kid taps Done, then puts the phone down.",
+          },
+          {
+            no: "A behavior tracker for shaming kids",
+            yes: "An XP system that celebrates effort. Skipped days are normal. No streaks-as-pressure.",
+          },
+          {
+            no: "Therapy, coaching, or medical advice",
+            yes: "A daily ritual layer. The Family Coach gives nudges, not diagnoses.",
+          },
+          {
+            no: "A data product harvesting your kids",
+            yes: "First name, age, avatar, XP. No last name, no school, no photos, no location.",
+          },
+        ].map((row) => (
+          <article
+            key={row.no}
+            className="flex flex-col gap-3 rounded-3xl bg-card p-6 shadow-md"
+          >
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-danger/15 font-bold text-danger"
+              >
+                ×
+              </span>
+              <p className="text-base font-semibold text-ink-primary">
+                {row.no}
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-success/15 font-bold text-success"
+              >
+                ✓
+              </span>
+              <p className="text-base text-ink-secondary">{row.yes}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function HeroMockCard() {
   return (
     <div className="relative mx-auto w-full max-w-md">
@@ -309,7 +562,7 @@ function HeroMockCard() {
               letterSpacing: "-0.02em",
             }}
           >
-            Layla
+            Zara
           </p>
           <div className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1 text-base font-bold" style={{ color: "var(--warning)" }}>
             <span aria-hidden>🔥</span>
