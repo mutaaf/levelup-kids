@@ -10,6 +10,8 @@ export type ChildCardProps = {
   todayTotal: number;
   streakDays?: number;
   badgeCount?: number;
+  /** Approved-completion count for each of the last 7 days, oldest→newest. */
+  weekActivity?: number[];
 };
 
 export function ChildCard({
@@ -21,6 +23,7 @@ export function ChildCard({
   todayTotal,
   streakDays = 0,
   badgeCount = 0,
+  weekActivity = [],
 }: ChildCardProps) {
   const lvl = level(totalXp);
   const xpInLevel = totalXp % 100;
@@ -133,6 +136,48 @@ export function ChildCard({
           />
         </div>
       </div>
+
+      {weekActivity.length === 7 && <WeekSparkline week={weekActivity} />}
+
+      <div className="flex items-center justify-between gap-2 border-t border-ink-muted/10 pt-3 text-sm font-semibold text-brand-600 transition-colors group-hover:text-brand-700">
+        <span>Open {name.split(" ")[0]}&apos;s quests</span>
+        <span aria-hidden>→</span>
+      </div>
     </Link>
+  );
+}
+
+// 7 small bars, oldest left → newest right. Heights scale to the busiest
+// day so a quiet kid still reads as having a shape; an empty kid shows
+// flat baseline dots.
+function WeekSparkline({ week }: { week: number[] }) {
+  const max = Math.max(1, ...week);
+  return (
+    <div
+      className="flex items-end gap-1.5"
+      style={{ height: "32px" }}
+      aria-label="Last 7 days of approved quests"
+    >
+      {week.map((v, i) => {
+        const pct = v === 0 ? 8 : Math.max(14, Math.round((v / max) * 100));
+        const isToday = i === week.length - 1;
+        return (
+          <div
+            key={i}
+            className="flex-1 rounded-md transition-all"
+            style={{
+              height: `${pct}%`,
+              backgroundColor:
+                v === 0
+                  ? "color-mix(in srgb, var(--brand-500) 12%, transparent)"
+                  : isToday
+                    ? "var(--brand-500)"
+                    : "color-mix(in srgb, var(--brand-500) 55%, transparent)",
+            }}
+            title={v === 0 ? "Quiet day" : `${v} approved`}
+          />
+        );
+      })}
+    </div>
   );
 }

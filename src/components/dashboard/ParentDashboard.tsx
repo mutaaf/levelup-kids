@@ -29,8 +29,16 @@ export type ParentDashboardProps = {
     todayTotal: number;
     streakDays?: number;
     badgeCount?: number;
+    weekActivity?: number[];
   }>;
   pendingApprovals: PendingApproval[];
+  recentWins?: Array<{
+    kind: "approval" | "badge";
+    childName: string;
+    label: string;
+    pillar: PillarSlug | null;
+    at: string;
+  }>;
 };
 
 function greeting(): string {
@@ -48,6 +56,7 @@ export function ParentDashboard({
   pendingApprovals,
   growthScores,
   scoreSlot,
+  recentWins = [],
 }: ParentDashboardProps) {
   const firstName = parentName.split(" ")[0] || "";
   const pendingCount = pendingApprovals.length;
@@ -104,6 +113,45 @@ export function ParentDashboard({
           </Link>
         </div>
       </header>
+
+      {recentWins.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-bold tracking-widest text-ink-muted uppercase">
+            Just happened
+          </h2>
+          <ol className="flex flex-wrap gap-2">
+            {recentWins.map((w, i) => (
+              <li
+                key={i}
+                className="flex items-center gap-2 rounded-2xl bg-card px-3 py-2 text-sm shadow-sm"
+              >
+                <span
+                  aria-hidden
+                  className="inline-flex size-7 items-center justify-center rounded-full text-base"
+                  style={{
+                    backgroundColor:
+                      w.kind === "badge"
+                        ? "color-mix(in srgb, var(--warning) 18%, transparent)"
+                        : "color-mix(in srgb, var(--brand-500) 14%, transparent)",
+                    color:
+                      w.kind === "badge"
+                        ? "var(--warning)"
+                        : "var(--brand-600)",
+                  }}
+                >
+                  {w.kind === "badge" ? "🏅" : "✓"}
+                </span>
+                <div className="flex flex-col leading-tight">
+                  <span className="font-semibold text-ink-primary">
+                    {w.childName}
+                  </span>
+                  <span className="text-xs text-ink-secondary">{w.label}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {/* FOCAL: Tonight — what the family does NEXT. Approval queue
           folds in as a nested card so the whole loop sits in one block. */}
