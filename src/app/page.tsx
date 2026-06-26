@@ -1,51 +1,41 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { createServiceSupabase } from "@/lib/supabase/server";
 import {
-  createServiceSupabase,
-  getSessionUser,
-} from "@/lib/supabase/server";
+  getCurrentUser,
+  getCurrentParent,
+  getCurrentHousehold,
+  getCurrentChildren,
+} from "@/lib/data/current";
+import { getCachedBadgeCountsByChild } from "@/lib/data/cached";
 import { Landing } from "@/components/landing/Landing";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
-import { scoreByPillar } from "@/lib/growth/score";
+import {
+  FamilyScoreSection,
+  FamilyScoreSkeleton,
+} from "@/components/dashboard/FamilyScoreSection";
 import type { PillarSlug } from "@/lib/types/pillar";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  // getSessionUser reads cookies without triggering a refresh — server
-  // components can't write rotated cookies. Middleware does the refresh.
-  const user = await getSessionUser();
+  // All four getters below are React.cache()-wrapped — multiple callers
+  // in the same request share one DB roundtrip. See src/lib/data/current.ts.
+  const user = await getCurrentUser();
   if (!user) return <Landing />;
 
-  const svc = createServiceSupabase();
-  const { data: parent } = await svc
-    .from("parents")
-    .select("household_id, name")
-    .eq("id", user.id)
-    .maybeSingle();
-
+  const parent = await getCurrentParent();
   if (!parent?.household_id) redirect("/onboarding/household");
 
-  const { data: household } = await svc
-    .from("households")
-    .select("name, focus_pillars")
-    .eq("id", parent.household_id)
-    .maybeSingle();
-
-  const focusPillars =
-    (household?.focus_pillars as string[] | null | undefined) ?? [];
-
-  // If no pillars selected, the onboarding is incomplete.
+  const household = await getCurrentHousehold();
+  const focusPillars = household?.focus_pillars ?? [];
   if (focusPillars.length === 0) redirect("/onboarding/pillars");
 
-  const { data: children } = await svc
-    .from("children")
-    .select("id, name, age, avatar")
-    .eq("household_id", parent.household_id)
-    .order("age", { ascending: true });
+  const children = await getCurrentChildren();
+  if (children.length === 0) redirect("/onboarding/children");
 
-  if (!children || children.length === 0) redirect("/onboarding/children");
-
-  const childIds = children.map((c) => c.id as string);
+  const svc = createServiceSupabase();
+  const childIds = children.map((c) => c.id);
   const today = new Date().toISOString().slice(0, 10);
 
   // Today's quests for the today completion count.
@@ -56,11 +46,12 @@ export default async function Home() {
     .eq("type", "daily")
     .eq("assigned_for", today);
 
-  // All approved completions for total XP — join the quest's pillar
-  // for the Family Growth Score.
+  // Approved completions for the per-child XP totals. The Family Growth
+  // Score crunch (loads the same set, joined with quest pillar) lives in
+  // <FamilyScoreSection> and streams in via Suspense.
   const { data: allCompletions } = await svc
     .from("quest_completions")
-    .select("id, child_id, xp_awarded, approved_at, quest_id, quests:quests(pillar)")
+    .select("id, child_id, xp_awarded, approved_at, quest_id")
     .in("child_id", childIds);
 
   // Pending completions (awaiting approval) joined with quests + children.
@@ -121,16 +112,13 @@ export default async function Home() {
     return streak;
   }
 
-  // Badge counts per child.
-  const { data: badgesByChild } = await svc
-    .from("child_achievements")
-    .select("child_id")
-    .in("child_id", childIds);
-  const badgeCountByChild = new Map<string, number>();
-  for (const row of badgesByChild ?? []) {
-    const id = row.child_id as string;
-    badgeCountByChild.set(id, (badgeCountByChild.get(id) ?? 0) + 1);
-  }
+  // Badge counts per child — cross-request cache. Invalidated via
+  // revalidateTag('household:X') from approveQuest when a badge is awarded.
+  const badgeCountByChildRecord =
+    await getCachedBadgeCountsByChild(parent.household_id as string);
+  const badgeCountByChild = new Map(
+    Object.entries(badgeCountByChildRecord),
+  );
 
   const childCards = children.map((c) => {
     const t = totals.get(c.id as string)!;
@@ -164,30 +152,23 @@ export default async function Home() {
     };
   });
 
-  // Family Growth Score per pillar (28-day window).
-  const approvedForScore = (allCompletions ?? [])
-    .filter((c) => c.approved_at)
-    .map((c) => {
-      const q = c.quests as unknown as { pillar: PillarSlug } | null;
-      return {
-        pillar: (q?.pillar ?? "scholar") as PillarSlug,
-        approvedAt: c.approved_at as string,
-      };
-    });
-  const growthScores = scoreByPillar({
-    focusPillars: focusPillars as PillarSlug[],
-    childrenCount: children.length,
-    completions: approvedForScore,
-  });
-
   return (
     <ParentDashboard
       householdName={household?.name ?? "Your household"}
-      parentName={(parent.name as string | null) ?? ""}
-      focusPillars={focusPillars as never}
+      parentName={parent.name ?? ""}
+      focusPillars={focusPillars as PillarSlug[]}
       kids={childCards}
       pendingApprovals={pendingApprovals}
-      growthScores={growthScores}
+      scoreSlot={
+        <Suspense fallback={<FamilyScoreSkeleton />}>
+          <FamilyScoreSection
+            householdId={household!.id}
+            householdName={household!.name}
+            focusPillars={focusPillars as PillarSlug[]}
+            childrenCount={children.length}
+          />
+        </Suspense>
+      }
     />
   );
 }

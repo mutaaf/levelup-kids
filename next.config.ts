@@ -15,6 +15,16 @@ const nextConfig: NextConfig = {
       static: 0,
     },
   },
+
+  // Browsers ask /favicon.ico directly regardless of the <link rel="icon">
+  // tag Next generates from src/app/icon.tsx — without a handler the
+  // request 404s. Rewrite to the dynamic /icon route (same 32×32 brand
+  // mark) so the request resolves to a real image.
+  async rewrites() {
+    return [
+      { source: "/favicon.ico", destination: "/icon" },
+    ];
+  },
 };
 
 export default nextConfig;

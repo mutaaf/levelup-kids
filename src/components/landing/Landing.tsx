@@ -562,7 +562,7 @@ function HeroMockCard() {
               letterSpacing: "-0.02em",
             }}
           >
-            Layla
+            Zara
           </p>
           <div className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1 text-base font-bold" style={{ color: "var(--warning)" }}>
             <span aria-hidden>🔥</span>
