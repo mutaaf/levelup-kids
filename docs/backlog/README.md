@@ -86,7 +86,7 @@ gtm-innovation never edits `src/`, `tests/`, `e2e/`, or `supabase/migrations/`. 
 
 | id | title | priority | status | area |
 |----|-------|----------|--------|------|
-| 0003 | Parent sign-up + sign-in via Supabase Auth magic link | P0 | in-progress | auth |
+| 0003 | Parent sign-up + sign-in via Supabase Auth magic link | P0 | shipped | auth |
 | 0004 | Household creation flow at /onboarding/household | P0 | groomed | onboarding |
 | 0005 | Invite a co-parent via email link | P0 | groomed | household |
 | 0006 | Add 1-3 children at /onboarding/children with age + avatar | P0 | groomed | onboarding |
