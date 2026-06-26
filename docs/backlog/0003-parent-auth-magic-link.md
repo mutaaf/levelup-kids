@@ -1,7 +1,7 @@
 ---
 id: 0003
 title: Parent sign-up + sign-in via Supabase Auth magic link
-status: in-progress
+status: shipped
 priority: P0
 area: auth
 created: 2026-06-16
