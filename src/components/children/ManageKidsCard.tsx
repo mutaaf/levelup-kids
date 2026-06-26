@@ -341,7 +341,7 @@ function AddKidForm({
             type="text"
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            placeholder="Layla"
+            placeholder="Zara"
             maxLength={24}
             autoFocus
             className="rounded-md border border-ink-muted/30 bg-paper px-3 py-2 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none"

@@ -85,7 +85,7 @@ export function ChildrenForm({ initial }: { initial: Draft[] }) {
                 type="text"
                 value={kid.name}
                 onChange={(e) => update(i, { name: e.target.value })}
-                placeholder="Layla"
+                placeholder="Zara"
                 maxLength={24}
                 className="input-chunky"
                 required
