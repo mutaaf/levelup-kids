@@ -70,7 +70,7 @@ export function ShareScoreButton({
         disabled={busy}
         className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {busy ? "Preparing…" : "Share this season's score"}
+        {busy ? "Preparing…" : "Share this month's score"}
       </button>
       {status && (
         <p className="text-xs text-ink-secondary" role="status">

@@ -56,7 +56,7 @@ export default async function PillarsOnboardingPage() {
             letterSpacing: "-0.02em",
           }}
         >
-          What are you focusing on this season?
+          What are you focusing on this month?
         </h1>
         <p className="mt-3 max-w-xl text-lg text-ink-secondary">
           Pick 2 or 3. Tomorrow morning each kid will see quests built around
