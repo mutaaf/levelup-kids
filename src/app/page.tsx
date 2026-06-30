@@ -224,29 +224,11 @@ export default async function Home() {
     };
   });
 
-  // Union of every kid's focus pillars (falling back to the household
-  // default for kids who haven't picked their own yet) — what the family
-  // as a whole is working on this month. Surfaces as the chips under H1.
-  const householdFocusUnion: PillarSlug[] = [];
-  const seenFocus = new Set<PillarSlug>();
-  for (const c of children) {
-    const arr =
-      c.focusPillars.length > 0
-        ? c.focusPillars
-        : (focusPillars as PillarSlug[]);
-    for (const p of arr) {
-      if (!seenFocus.has(p)) {
-        seenFocus.add(p);
-        householdFocusUnion.push(p);
-      }
-    }
-  }
-
   return (
     <ParentDashboard
       householdName={household?.name ?? "Your household"}
       parentName={parent.name ?? ""}
-      focusPillars={householdFocusUnion}
+      focusPillars={focusPillars as PillarSlug[]}
       kids={childCards}
       pendingApprovals={pendingApprovals}
       recentWins={topRecentWins}
@@ -256,6 +238,7 @@ export default async function Home() {
             householdId={household!.id}
             householdName={household!.name}
             focusPillars={focusPillars as PillarSlug[]}
+            childrenCount={children.length}
           />
         </Suspense>
       }

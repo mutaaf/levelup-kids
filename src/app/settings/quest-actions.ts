@@ -153,7 +153,7 @@ export async function reseedThisWeek(): Promise<QuestActionResult> {
 
   const { data: kids } = await svc
     .from("children")
-    .select("id, age, focus_pillars")
+    .select("id, age")
     .eq("household_id", hh);
   if (!kids || kids.length === 0) {
     return { ok: false, error: "Add a child first." };
@@ -178,14 +178,10 @@ export async function reseedThisWeek(): Promise<QuestActionResult> {
   await svc.from("quests").delete().in("child_id", childIds);
 
   const rows = seedFirstWeek({
-    children: kids.map((c) => {
-      const cf = (c.focus_pillars as string[] | null) ?? [];
-      return {
-        id: c.id as string,
-        age: (c.age as number | null) ?? 7,
-        focusPillars: (cf.length > 0 ? cf : focusPillars) as PillarSlug[],
-      };
-    }),
+    children: kids.map((c) => ({
+      id: c.id as string,
+      age: (c.age as number | null) ?? 7,
+    })),
     focusPillars,
     customTemplates,
   });
