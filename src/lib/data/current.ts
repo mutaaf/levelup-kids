@@ -5,7 +5,6 @@ import {
   createServiceSupabase,
   getSessionUser,
 } from "@/lib/supabase/server";
-import type { PillarSlug } from "@/lib/types/pillar";
 
 // Within-request dedupe layer.
 //
@@ -74,20 +73,14 @@ export const getCurrentHousehold = cache(
 /** Children for the current household, ordered by age (youngest first). */
 export const getCurrentChildren = cache(
   async (): Promise<
-    Array<{
-      id: string;
-      name: string;
-      age: number;
-      avatar: string;
-      focusPillars: PillarSlug[];
-    }>
+    Array<{ id: string; name: string; age: number; avatar: string }>
   > => {
     const hh = await getCurrentHousehold();
     if (!hh) return [];
     const svc = createServiceSupabase();
     const { data } = await svc
       .from("children")
-      .select("id, name, age, avatar, focus_pillars")
+      .select("id, name, age, avatar")
       .eq("household_id", hh.id)
       .order("age", { ascending: true });
     return (data ?? []).map((c) => ({
@@ -95,7 +88,6 @@ export const getCurrentChildren = cache(
       name: (c.name as string) ?? "",
       age: (c.age as number) ?? 7,
       avatar: (c.avatar as string) ?? "🦊",
-      focusPillars: ((c.focus_pillars as string[] | null) ?? []) as PillarSlug[],
     }));
   },
 );

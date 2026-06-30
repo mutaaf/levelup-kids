@@ -104,8 +104,8 @@ export function Landing() {
               Every dimension of a thriving kid.
             </h2>
             <p className="mt-1 max-w-xl text-lg text-ink-secondary">
-              Each kid picks 2 or 3 this month. Adjust whenever they level up
-              or whenever your family does.
+              Pick 2 or 3 to focus on this season. Change them whenever your
+              family changes.
             </p>
           </div>
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -174,7 +174,7 @@ export function Landing() {
             <HowStep
               num={1}
               title="Set up your family"
-              body="Name your household. Add your kids. Pick each kid's 2 or 3 pillars for the month. Two minutes, tops."
+              body="Name your household. Add your kids. Pick 2 or 3 pillars you want to focus on this season. Two minutes, tops."
             />
             <HowStep
               num={2}
