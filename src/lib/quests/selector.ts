@@ -123,24 +123,38 @@ export function seedQuestsForChild(args: {
   return rows;
 }
 
-/** Seed a full household — all children at once. Returns one flat array. */
+/**
+ * Seed a full household — all children at once. Each child brings their
+ * OWN focus pillars (added 2026-06-23 in the per-child refactor). If a
+ * child's focusPillars is empty, falls back to the optional household
+ * default. Returns one flat array.
+ */
 export function seedFirstWeek(args: {
-  children: readonly { id: string; age: number }[];
-  focusPillars: readonly PillarSlug[];
+  children: readonly {
+    id: string;
+    age: number;
+    focusPillars?: readonly PillarSlug[];
+  }[];
+  /** Used only when a child has no focusPillars of their own. */
+  focusPillars?: readonly PillarSlug[];
   customTemplates?: readonly CustomQuestTemplate[];
   weekStart?: Date;
   rng?: () => number;
 }): SeedQuestRow[] {
-  return args.children.flatMap((c) =>
-    seedQuestsForChild({
+  return args.children.flatMap((c) => {
+    const pillars =
+      c.focusPillars && c.focusPillars.length > 0
+        ? c.focusPillars
+        : (args.focusPillars ?? []);
+    return seedQuestsForChild({
       childId: c.id,
       age: c.age,
-      focusPillars: args.focusPillars,
+      focusPillars: pillars,
       customTemplates: args.customTemplates,
       weekStart: args.weekStart,
       rng: args.rng,
-    }),
-  );
+    });
+  });
 }
 
 export { SEED_LIBRARY };

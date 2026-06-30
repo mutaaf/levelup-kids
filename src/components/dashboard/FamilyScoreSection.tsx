@@ -1,5 +1,5 @@
 import "server-only";
-import { scoreByPillar } from "@/lib/growth/score";
+import { familyScoreByPillar } from "@/lib/growth/score";
 import { buildPillarBreakdowns } from "@/lib/growth/breakdown";
 import { getCachedApprovedCompletions } from "@/lib/data/cached";
 import { getCurrentChildren } from "@/lib/data/current";
@@ -15,29 +15,42 @@ export async function FamilyScoreSection({
   householdId,
   householdName,
   focusPillars,
-  childrenCount,
 }: {
   householdId: string;
   householdName: string;
+  /** Household default — used for kids who haven't picked their own yet. */
   focusPillars: PillarSlug[];
-  childrenCount: number;
 }) {
   // Cached per-household; invalidated via revalidateTag('household:X')
   // whenever a quest is approved or unapproved.
   const completions = await getCachedApprovedCompletions(householdId);
-  const growthScores = scoreByPillar({
-    focusPillars,
-    childrenCount: childrenCount || 1,
-    completions: completions.map((c) => ({
-      pillar: c.pillar,
-      approvedAt: c.approvedAt,
+
+  // cache() dedupe means getCurrentChildren reuses the dashboard's earlier
+  // query — no extra round-trip.
+  const kids = await getCurrentChildren();
+
+  // Per-child scoring is the load-bearing model: each kid is scored against
+  // their OWN focus pillars (falling back to the household default), then
+  // averaged per pillar across the kids who focus on it.
+  const completionsByChild = new Map<
+    string,
+    Array<{ pillar: PillarSlug; approvedAt: string }>
+  >();
+  for (const k of kids) completionsByChild.set(k.id, []);
+  for (const c of completions) {
+    completionsByChild
+      .get(c.childId)
+      ?.push({ pillar: c.pillar, approvedAt: c.approvedAt });
+  }
+  const growthScores = familyScoreByPillar({
+    children: kids.map((k) => ({
+      childId: k.id,
+      focusPillars: k.focusPillars.length > 0 ? k.focusPillars : focusPillars,
+      completions: completionsByChild.get(k.id) ?? [],
     })),
   });
 
-  // Per-pillar breakdown powers the drill-in drawer. cache() dedupe
-  // means getCurrentChildren reuses the dashboard's earlier query —
-  // no extra round-trip.
-  const kids = await getCurrentChildren();
+  // Per-pillar breakdown powers the drill-in drawer.
   const breakdowns = buildPillarBreakdowns({
     children: kids,
     completions,
