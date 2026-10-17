@@ -162,6 +162,7 @@ levelup-kids/
   - `lint`
   - `unit-tests`
   - `e2e-tests`
+  - `review-gate` — the fleet reviewer's `FLEET-VERDICT` on the head commit (agent-fleet ticket 0070)
 - **Agent branch prefixes**: `feat/` (features, ship), `chore/gtm-` (backlog refresh, groom), `eng/` (engineering hygiene — only when ENG_ENABLED=1).
 - **Local gate command** (heal/dev runs this before pushing; all must pass):
   `npm run lint && npm run typecheck && npm run test && node scripts/check-backlog.mjs`
